@@ -1,4 +1,4 @@
-import { Update as UpdateTelegraf } from '@telegraf/types';
+import { Message, Update as UpdateTelegraf } from '@telegraf/types';
 import { BotService } from './bot.service';
 import {
   Action,
@@ -12,6 +12,12 @@ import {
 import { AppService } from 'src/app/app.service';
 import { UserService } from 'src/user/user.service';
 import { Context, NarrowedContext } from 'telegraf';
+import { ConfigService } from '@nestjs/config';
+
+export type UserTelegrafContext = NarrowedContext<
+  Context,
+  UpdateTelegraf.MessageUpdate
+>;
 
 @Update()
 export class TelegramGateway {
@@ -19,7 +25,52 @@ export class TelegramGateway {
     private botService: BotService,
     private appService: AppService,
     private userService: UserService,
+    private readonly config: ConfigService,
   ) {}
+
+  @Start()
+  async start(@Ctx() ctx: UserTelegrafContext) {
+    console.log('Your Chat ID:', ctx.chat.id);
+    if (ctx.from) {
+      await this.userService.createUserOrUpdateUser(ctx.from);
+    }
+    await ctx.reply('get start');
+  }
+
+  @On('pre_checkout_query')
+  async onCheckout(@Ctx() ctx: Context) {
+    await ctx.answerPreCheckoutQuery(true);
+  }
+
+  @On('text')
+  async onText(@Ctx() ctx: UserTelegrafContext) {
+    const message = ctx.message as Message.TextMessage;
+    const text = message.text;
+
+    if (text === '/pay') {
+      await ctx.replyWithInvoice({
+        title: 'Тестовая услуга',
+        description: 'Это описание услуги',
+        payload: 'test-payload-123',
+        provider_token: this.config.get<string>('ALFA_TOKEN')!,
+        currency: 'BYN',
+        prices: [{ label: 'Услуга', amount: 1500 }],
+        start_parameter: 'test-start',
+        send_email_to_provider: true,
+        need_email: true,
+      });
+    }
+  }
+
+  @On('successful_payment')
+  async onPayment(@Ctx() ctx: UserTelegrafContext) {
+    const message = ctx.message as Message.SuccessfulPaymentMessage;
+
+    const payment = message.successful_payment;
+    await ctx.reply(
+      `✅ Платёж на сумму ${payment.total_amount / 100} ${payment.currency} прошёл успешно!`,
+    );
+  }
 
   @On('chat_member')
   async onChatMemberUpdate(
@@ -54,26 +105,17 @@ export class TelegramGateway {
   }
 
   @Hears('hi')
-  async hears(@Ctx() ctx: Context) {
+  async hears(@Ctx() ctx: UserTelegrafContext) {
     await ctx.reply('get hi');
   }
 
   @On('photo')
-  async addNewOrderImages(@Ctx() ctx: Context) {
+  async addNewOrderImages(@Ctx() ctx: UserTelegrafContext) {
     await ctx.reply('get photo');
   }
 
-  @Start()
-  async start(@Ctx() ctx: Context) {
-    console.log(ctx.from);
-    if (ctx.from) {
-      await this.userService.createUserOrUpdateUser(ctx.from);
-    }
-    await ctx.reply('get start');
-  }
-
   @Action('closeAccess')
-  async closeAccess(@Ctx() ctx: Context) {
+  async closeAccess(@Ctx() ctx: UserTelegrafContext) {
     console.log('Access close');
     if (ctx.from) {
       await this.botService.sendTextMessage(ctx.from.id, 'Доступ закрыт');
@@ -81,7 +123,7 @@ export class TelegramGateway {
   }
 
   @Command('enter')
-  async getAuthLink(@Ctx() ctx: Context) {
+  async getAuthLink(@Ctx() ctx: UserTelegrafContext) {
     if (ctx && ctx.from) {
       await ctx.reply(this.appService.getAuthLink(ctx.from.id));
     }

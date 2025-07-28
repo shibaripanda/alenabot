@@ -14,6 +14,12 @@ import { UserModule } from 'src/user/user.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         token: config.get<string>('BOT_TOKEN')!,
+        allowedUpdates: [
+          'message',
+          'callback_query',
+          'pre_checkout_query',
+          'successful_payment',
+        ],
       }),
     }),
     forwardRef(() => AppModule),
