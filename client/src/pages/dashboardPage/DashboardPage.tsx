@@ -21,6 +21,8 @@ export function DashboardPage() {
     });
     socket.on('connect_error', (err) => {
       console.error('Connection error:', err.message);
+      sessionStorage.removeItem('token');
+      navigate('/');
     });
     return () => {
       socket.disconnect();

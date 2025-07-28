@@ -35,6 +35,13 @@ export class TelegramGateway {
     await ctx.reply('get start');
   }
 
+  @Command('enter')
+  async getAuthLink(@Ctx() ctx: UserTelegrafContext) {
+    if (ctx && ctx.from) {
+      await ctx.reply(this.appService.getAuthLink(ctx.from.id));
+    }
+  }
+
   @On('pre_checkout_query')
   async onCheckout(@Ctx() ctx: Context) {
     await ctx.answerPreCheckoutQuery(true);
@@ -117,13 +124,6 @@ export class TelegramGateway {
     console.log('Access close');
     if (ctx.from) {
       await this.botService.sendTextMessage(ctx.from.id, 'Доступ закрыт');
-    }
-  }
-
-  @Command('enter')
-  async getAuthLink(@Ctx() ctx: UserTelegrafContext) {
-    if (ctx && ctx.from) {
-      await ctx.reply(this.appService.getAuthLink(ctx.from.id));
     }
   }
 }

@@ -19,7 +19,7 @@ export function StartPage() {
     }
     else if(sessionStorage.getItem('token')){
       console.log('REDY FOR WORK')
-      setStatus('GAMEBOT')
+      setStatus('ALENABOT')
       navigate('/dashboard')
     }
     else{
@@ -39,6 +39,8 @@ export function StartPage() {
     })
     .catch((e) => {
       console.log(e.response.data.message)
+      sessionStorage.removeItem('token');
+      navigate('/')
     })
   }
 
