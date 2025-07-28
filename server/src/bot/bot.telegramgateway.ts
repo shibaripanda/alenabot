@@ -31,9 +31,7 @@ export class TelegramGateway {
   @Start()
   async start(@Ctx() ctx: UserTelegrafContext) {
     console.log('Your Chat ID:', ctx.chat.id);
-    if (ctx.from) {
-      await this.userService.createUserOrUpdateUser(ctx.from);
-    }
+    await this.userService.createUserOrUpdateUser(ctx.from);
     await ctx.reply('get start');
   }
 

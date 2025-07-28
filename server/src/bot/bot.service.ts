@@ -10,6 +10,36 @@ export class BotService {
     private readonly config: ConfigService,
   ) {}
 
+  async isUserActive(userId: number): Promise<boolean> {
+    try {
+      await this.bot.telegram.sendChatAction(userId, 'typing');
+      return true;
+    } catch (error: any) {
+      if (this.isTelegramError(error)) {
+        if (error.code === 403 || error.code === 400) {
+          console.warn(
+            `Пользователь ${userId} недоступен: ${error.description}`,
+          );
+          return false;
+        }
+      }
+
+      console.error(`Ошибка при проверке пользователя ${userId}:`, error);
+      return false;
+    }
+  }
+
+  async isUserMember(userId: number, chatId: string): Promise<boolean> {
+    try {
+      const res = await this.bot.telegram.getChatMember(chatId, userId);
+      const status = res.status;
+      return status !== 'left' && status !== 'kicked';
+    } catch (error) {
+      console.error('Ошибка проверки участника:', error);
+      return false;
+    }
+  }
+
   async sendTextMessage(userId: number, text: string) {
     await this.bot.telegram.sendMessage(userId, text);
   }
@@ -40,6 +70,14 @@ export class BotService {
           ],
         },
       },
+    );
+  }
+
+  private isTelegramError(
+    error: any,
+  ): error is { code: number; description: string } {
+    return (
+      typeof error === 'object' && 'code' in error && 'description' in error
     );
   }
 }
