@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectBot } from 'nestjs-telegraf';
+import { AppService } from 'src/app/app.service';
 import { Telegraf } from 'telegraf';
 
 @Injectable()
@@ -8,7 +9,111 @@ export class BotService {
   constructor(
     @InjectBot() private bot: Telegraf,
     private readonly config: ConfigService,
+    private appService: AppService,
   ) {}
+
+  async invoice(userId: number, service: string, price: number) {
+    await this.bot.telegram.sendInvoice(userId, {
+      title: service,
+      description: 'Это описание услуги',
+      payload: userId.toString(),
+      provider_token: this.config.get<string>('ALFA_TOKEN')!,
+      currency: 'BYN',
+      prices: [{ label: service, amount: price }],
+      start_parameter: 'test-start',
+      send_email_to_provider: true,
+      need_email: true,
+    });
+  }
+
+  async setCountryForOrder(userId: number) {
+    await this.bot.telegram.sendMessage(userId, 'Выбери', {
+      parse_mode: 'HTML',
+      protect_content: true,
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: 'Тренер Россия 150 byn',
+              callback_data: 'invoice|Тренер Россия 150 byn|15000',
+            },
+          ],
+          [
+            {
+              text: 'Тренер Беларусь 120 byn',
+              callback_data: 'invoice|Тренер Беларусь 120 by|12000',
+            },
+          ],
+          [
+            {
+              text: 'Тренер Казахстан 120 byn',
+              callback_data: 'invoice|Тренер Казахстан 120 byn|12000',
+            },
+          ],
+          [
+            {
+              text: 'Назад',
+              callback_data: 'backToMainMenu',
+            },
+          ],
+        ],
+      },
+    });
+  }
+
+  async startBotMessage(userId: number) {
+    if (this.appService.appSettings) {
+      if (this.appService.appSettings.startMessagePhoto) {
+        await this.bot.telegram.sendPhoto(
+          userId,
+          this.appService.appSettings.startMessagePhoto,
+          {
+            caption: this.appService.appSettings.helloText,
+            parse_mode: 'HTML',
+            protect_content: true,
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: 'Канал Jumping Universe',
+                    callback_data: 'takeChannel',
+                  },
+                ],
+                [{ text: 'Обучение online', callback_data: 'takeStudy' }],
+              ],
+            },
+          },
+        );
+        return;
+      }
+      await this.bot.telegram.sendMessage(
+        userId,
+        this.appService.appSettings.helloText,
+        {
+          parse_mode: 'HTML',
+          protect_content: true,
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: 'Канал Jumping Universe',
+                  callback_data: 'takeChannel',
+                },
+              ],
+              [
+                {
+                  text: 'Обучение online',
+                  callback_data: 'takeStudy',
+                },
+              ],
+            ],
+          },
+        },
+      );
+      return;
+    }
+    console.log('Start message nor work');
+  }
 
   async isUserActive(userId: number): Promise<boolean> {
     try {

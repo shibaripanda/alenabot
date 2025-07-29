@@ -14,15 +14,15 @@ export class AppController {
   //   console.log('Test');
   // }
 
-  @Get('access/:token')
-  async checkToken(@Param('token') startToken: string) {
-    const res = await this.appService.validateToken(startToken);
-    if (!res) {
-      console.log('Close');
-      throw new ForbiddenException('Недействительный токен');
-    }
-    console.log('Open');
-    await this.botService.alertUserHaveAccess(res.userId);
-    return { token: res.token };
-  }
+  // @Get('access/:token')
+  // async checkToken(@Param('token') startToken: string) {
+  //   const res = await this.appService.validateToken(startToken);
+  //   if (!res) {
+  //     console.log('Close');
+  //     throw new ForbiddenException('Недействительный токен');
+  //   }
+  //   console.log('Open');
+  //   await this.botService.alertUserHaveAccess(res.userId);
+  //   return { token: res.token };
+  // }
 }

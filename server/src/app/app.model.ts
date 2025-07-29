@@ -1,22 +1,31 @@
 import * as mongoose from 'mongoose';
 
+type appSettings = 'alenabot';
+
 export const AppSchema = new mongoose.Schema(
   {
-    link: {
+    appSettings: {
+      type: String,
+      unique: true,
+      require: true,
+    },
+    startMessagePhoto: {
       type: String,
       default: '',
     },
-    name: {
+    helloText: {
       type: String,
-      default: '',
+      default: 'Hello text',
+      require: true,
     },
   },
   { timestamps: true },
 );
 
 export interface App {
-  link?: string;
-  name?: string;
+  appSettings: appSettings;
+  startMessagePhoto: string;
+  helloText: string;
 }
 
 export type AppDocument = App & mongoose.Document;
