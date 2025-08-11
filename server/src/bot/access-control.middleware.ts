@@ -26,7 +26,7 @@ export const accessControlMiddleware = (): MiddlewareFn<ContextWithUser> => {
 
     const appService = moduleRef.get(AppService, { strict: false });
     const appDoc = await appService.getAppSettings();
-    if (!appDoc) return;
+    if (!appDoc || !appDoc.startMessagePhoto) return;
 
     ctx.user = userDoc;
     ctx.app = appDoc;

@@ -19,22 +19,22 @@ export class BotService {
   priceList = [
     {
       id: 'service1',
-      product: '🇷🇺 Тренер Россия 150 ',
-      description: 'Jumping Universe',
+      product: '🇷🇺 Тренер Россия',
+      description: 'Оплата за вход в канал Jumping Universe',
       price: 15000,
       currency: 'BYN',
     },
     {
       id: 'service2',
-      product: '🇧🇾 Тренер Беларусь 120',
-      description: 'Jumping Universe',
+      product: '🇧🇾 Тренер Беларусь',
+      description: 'Оплата за вход в канал Jumping Universe',
       price: 12000,
       currency: 'BYN',
     },
     {
       id: 'service3',
-      product: '🇰🇿 Тренер Казахстан 120',
-      description: 'Jumping Universe',
+      product: '🇰🇿 Тренер Казахстан',
+      description: 'Оплата за вход в канал Jumping Universe',
       price: 12000,
       currency: 'BYN',
     },
@@ -45,22 +45,22 @@ export class BotService {
       price: [
         {
           id: 'service4',
-          product: '🇷🇺 Тренер Россия 95',
-          description: 'Jumping Universe',
+          product: '🇷🇺 Тренер Россия',
+          description: 'Продление на 1 месяц в Jumping Universe',
           price: 9500,
           currency: 'BYN',
         },
         {
           id: 'service5',
-          product: '🇧🇾 Тренер Беларусь 70',
-          description: 'Jumping Universe',
+          product: '🇧🇾 Тренер Беларусь',
+          description: 'Продление на 1 месяц в Jumping Universe',
           price: 7000,
           currency: 'BYN',
         },
         {
           id: 'service6',
-          product: '🇰🇿 Тренер Казахстан 70',
-          description: 'Jumping Universe',
+          product: '🇰🇿 Тренер Казахстан',
+          description: 'Продление на 1 месяц в Jumping Universe',
           price: 7000,
           currency: 'BYN',
         },
@@ -71,22 +71,22 @@ export class BotService {
       price: [
         {
           id: 'service7',
-          product: '🇷🇺 Тренер Россия 260',
-          description: 'Jumping Universe',
+          product: '🇷🇺 Тренер Россия',
+          description: 'Продление на 3 месяца в Jumping Universe',
           price: 26000,
           currency: 'BYN',
         },
         {
           id: 'service8',
-          product: '🇧🇾 Тренер Беларусь 195',
-          description: 'Jumping Universe',
+          product: '🇧🇾 Тренер Беларусь',
+          description: 'Продление на 3 месяца в Jumping Universe',
           price: 19500,
           currency: 'BYN',
         },
         {
           id: 'service9',
-          product: '🇰🇿 Тренер Казахстан 195',
-          description: 'Jumping Universe',
+          product: '🇰🇿 Тренер Казахстан',
+          description: 'Продление на 3 месяца в Jumping Universe',
           price: 19500,
           currency: 'BYN',
         },
@@ -97,22 +97,22 @@ export class BotService {
       price: [
         {
           id: 'service10',
-          product: '🇷🇺 Тренер Россия 480',
-          description: 'Jumping Universe',
+          product: '🇷🇺 Тренер Россия',
+          description: 'Продление на 6 месяцев в Jumping Universe',
           price: 48000,
           currency: 'BYN',
         },
         {
           id: 'service11',
-          product: '🇧🇾 Тренер Беларусь 370',
-          description: 'Jumping Universe',
+          product: '🇧🇾 Тренер Беларусь',
+          description: 'Продление на 6 месяцев в Jumping Universe',
           price: 37000,
           currency: 'BYN',
         },
         {
           id: 'service12',
-          product: '🇰🇿 Тренер Казахстан 370',
-          description: 'Jumping Universe',
+          product: '🇰🇿 Тренер Казахстан',
+          description: 'Продление на 6 месяцев в Jumping Universe',
           price: 37000,
           currency: 'BYN',
         },
@@ -147,13 +147,13 @@ export class BotService {
     user: UserDocument,
     app: AppDocument,
   ) {
-    const text = 'Выбирай';
+    const text = 'Из какой ты страны?';
     const buttons = [
       ...this.priceListLong
         .find((l) => l.long === long)!
         .price.map((prod) => [
           {
-            text: `${prod.product} ${prod.currency}`,
+            text: `${prod.product}`,
             callback_data: `invoice|${prod.id}`,
           },
         ]),
@@ -181,13 +181,13 @@ export class BotService {
   ) {
     const endText = (index: number) => {
       if (index === 1) return 'месяц 🚀';
-      if (index === 3) return 'месяца 🚀🚀🚀';
-      if (index === 6) return 'месяцев 🚀🚀🚀🚀🚀🚀';
+      if (index === 3) return 'месяца 🚀🚀';
+      if (index === 6) return 'месяцев 🚀🚀🚀';
     };
     const buttons = [
       ...this.priceListLong.map((prod) => [
         {
-          text: `Подписка на ${prod.long} ${endText(prod.long)}`,
+          text: `Продление на ${prod.long} ${endText(prod.long)}`,
           callback_data: `long|${prod.long}`,
         },
       ]),
@@ -208,11 +208,11 @@ export class BotService {
   }
 
   async listProducts(telegramId: number, user: UserDocument, app: AppDocument) {
-    const text = 'Выбирай';
+    const text = 'Из какой вы страны?';
     const buttons = [
       ...this.priceList.map((prod) => [
         {
-          text: `${prod.product} ${prod.currency}`,
+          text: `${prod.product}`,
           callback_data: `invoice|${prod.id}`,
         },
       ]),
@@ -238,8 +238,14 @@ export class BotService {
     const buttons = [
       [
         {
-          text: 'Канал Jumping Universe',
+          text: 'Jumping Universe',
           callback_data: 'takeChannel',
+        },
+      ],
+      [
+        {
+          text: 'Jumping Universe (для теста)',
+          callback_data: 'takeChannelLong',
         },
       ],
       [{ text: 'Обучение online', callback_data: 'takeStudy' }],

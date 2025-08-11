@@ -46,7 +46,7 @@ export class BotMessageService {
         console.log('Ошибка sendMessageinvoice');
       });
     await this.bot.telegram
-      .sendMessage(telegramId, 'Вы можете вернуться назад:', {
+      .sendMessage(telegramId, 'Вернуться', {
         reply_markup: {
           inline_keyboard: [[{ text: 'Назад', callback_data: 'takeChannel' }]],
         },
@@ -115,11 +115,13 @@ export class BotMessageService {
         protect_content: true,
       })
       .then(async (res) => {
-        await this.deleteOrEditOldMessage(
-          telegramId,
-          user.lastMessageId,
-          app.startMessagePhoto,
-        );
+        if (user.lastMessageId) {
+          await this.deleteOrEditOldMessage(
+            telegramId,
+            user.lastMessageId,
+            app.startMessagePhoto,
+          );
+        }
         user.lastMessageId = res.message_id;
         await user.save();
       })

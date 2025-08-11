@@ -13,7 +13,7 @@ export class App {
   @Prop({ default: '' })
   startMessagePhoto: string;
 
-  @Prop({ required: true, default: 'Hello text' })
+  @Prop({ required: true, default: 'Добро пожаловать в бот SLEDI_ZAMNOI' })
   helloText: string;
 }
 

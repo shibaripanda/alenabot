@@ -51,7 +51,7 @@ export class TelegramGateway {
     if (ctx.user.isSubscribed) {
       await this.botService.listProductsForOldUsers(
         ctx.from.id,
-        'Выбирай',
+        'Из какой вы страны?',
         ctx.user,
         ctx.app,
       );
@@ -61,24 +61,16 @@ export class TelegramGateway {
     await ctx.answerCbQuery();
   }
 
-  // @Action('takeChannelLong')
-  // async takeChannelLong(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
-  //   console.log('takeChannelLong');
-  //   await this.botService.listProductsForOldUsers(
-  //     ctx.from.id,
-  //     ctx.user,
-  //     ctx.app,
-  //   );
-  //   await ctx.answerCbQuery();
-  // }
-
-  @On('pre_checkout_query')
-  async onPreCheckoutQuery(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
-    console.log('pre_checkout_query');
-    console.log(ctx.update['pre_checkout_query']);
-    await ctx.answerPreCheckoutQuery(true).then((res) => {
-      console.log(res);
-    });
+  @Action('takeChannelLong')
+  async takeChannelLong(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
+    console.log('takeChannelLong');
+    await this.botService.listProductsForOldUsers(
+      ctx.from.id,
+      'Продление подписки Jumping Universe',
+      ctx.user,
+      ctx.app,
+    );
+    await ctx.answerCbQuery();
   }
 
   @On('successful_payment')
@@ -99,6 +91,21 @@ export class TelegramGateway {
     } else {
       console.warn('Update не содержит успешной оплаты');
     }
+  }
+
+  @On('pre_checkout_query')
+  async onPreCheckoutQuery(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
+    console.log('pre_checkout_query');
+    console.log(ctx.update['pre_checkout_query']);
+    await ctx.answerPreCheckoutQuery(true).then((res) => {
+      console.log(res);
+      console.log(
+        new Date(Date.now()).toLocaleString('ru-RU', {
+          dateStyle: 'short',
+          timeStyle: 'medium',
+        }),
+      );
+    });
   }
 
   @On('callback_query')

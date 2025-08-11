@@ -20,6 +20,12 @@ import { BotUserNotificationService } from './bot.userNotification copy';
       useFactory: (config: ConfigService, moduleRef: ModuleRef) => ({
         token: config.get<string>('BOT_TOKEN')!,
         dropPendingUpdates: true,
+        allowedUpdates: [
+          'message',
+          'callback_query',
+          'pre_checkout_query',
+          'successful_payment',
+        ],
         middlewares: [
           (ctx, next) => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
