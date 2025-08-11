@@ -4,29 +4,46 @@ import { TelegrafModule } from 'nestjs-telegraf';
 import { TelegramGateway } from './bot.telegramgateway';
 import { BotLifecycleService } from './bot-lifecycle.service';
 import { ConfigService } from '@nestjs/config';
-// import { AppService } from 'src/app/app.service';
-import { AppModule } from 'src/app/app.module';
 import { UserModule } from 'src/user/user.module';
+import { BotMessageService } from './bot.message';
+import { ModuleRef } from '@nestjs/core';
+import { accessControlMiddleware } from './access-control.middleware';
+import { BotManagerNotificationService } from './bot.managerNotification';
+import { BotUserNotificationService } from './bot.userNotification copy';
 
 @Module({
   imports: [
+    forwardRef(() => UserModule),
     TelegrafModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
+      imports: [],
+      inject: [ConfigService, ModuleRef],
+      useFactory: (config: ConfigService, moduleRef: ModuleRef) => ({
         token: config.get<string>('BOT_TOKEN')!,
-        allowedUpdates: [
-          'message',
-          'callback_query',
-          'pre_checkout_query',
-          'successful_payment',
+        dropPendingUpdates: true,
+        middlewares: [
+          (ctx, next) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            ctx.state.moduleRef = moduleRef;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            return accessControlMiddleware()(ctx, next);
+          },
         ],
       }),
     }),
-    forwardRef(() => AppModule),
-    forwardRef(() => UserModule),
   ],
   controllers: [],
-  providers: [BotService, BotLifecycleService, TelegramGateway],
-  exports: [BotService],
+  providers: [
+    BotService,
+    BotLifecycleService,
+    TelegramGateway,
+    BotMessageService,
+    BotManagerNotificationService,
+    BotUserNotificationService,
+  ],
+  exports: [
+    BotService,
+    BotManagerNotificationService,
+    BotUserNotificationService,
+  ],
 })
 export class BotModule {}

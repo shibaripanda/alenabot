@@ -1,118 +1,258 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectBot } from 'nestjs-telegraf';
-import { AppService } from 'src/app/app.service';
 import { Telegraf } from 'telegraf';
+import { BotMessageService } from './bot.message';
+import { AppDocument } from 'src/app/app.schema';
+import { UserDocument } from 'src/user/user.schema';
 
 @Injectable()
 export class BotService {
   constructor(
     @InjectBot() private bot: Telegraf,
     private readonly config: ConfigService,
-    private appService: AppService,
-  ) {}
+    private botMessageService: BotMessageService,
+  ) {
+    console.log('BotService initialized');
+  }
 
-  async invoice(userId: number, service: string, price: number) {
-    await this.bot.telegram.sendInvoice(userId, {
-      title: service,
-      description: 'Это описание услуги',
-      payload: userId.toString(),
-      provider_token: this.config.get<string>('ALFA_TOKEN')!,
+  priceList = [
+    {
+      id: 'service1',
+      product: '🇷🇺 Тренер Россия 150 ',
+      description: 'Jumping Universe',
+      price: 15000,
       currency: 'BYN',
-      prices: [{ label: service, amount: price }],
-      start_parameter: 'test-start',
-      send_email_to_provider: true,
-      need_email: true,
-    });
-  }
-
-  async setCountryForOrder(userId: number) {
-    await this.bot.telegram.sendMessage(userId, 'Выбери', {
-      parse_mode: 'HTML',
-      protect_content: true,
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: 'Тренер Россия 150 byn',
-              callback_data: 'invoice|Тренер Россия 150 byn|15000',
-            },
-          ],
-          [
-            {
-              text: 'Тренер Беларусь 120 byn',
-              callback_data: 'invoice|Тренер Беларусь 120 by|12000',
-            },
-          ],
-          [
-            {
-              text: 'Тренер Казахстан 120 byn',
-              callback_data: 'invoice|Тренер Казахстан 120 byn|12000',
-            },
-          ],
-          [
-            {
-              text: 'Назад',
-              callback_data: 'backToMainMenu',
-            },
-          ],
-        ],
-      },
-    });
-  }
-
-  async startBotMessage(userId: number) {
-    if (this.appService.appSettings) {
-      if (this.appService.appSettings.startMessagePhoto) {
-        await this.bot.telegram.sendPhoto(
-          userId,
-          this.appService.appSettings.startMessagePhoto,
-          {
-            caption: this.appService.appSettings.helloText,
-            parse_mode: 'HTML',
-            protect_content: true,
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  {
-                    text: 'Канал Jumping Universe',
-                    callback_data: 'takeChannel',
-                  },
-                ],
-                [{ text: 'Обучение online', callback_data: 'takeStudy' }],
-              ],
-            },
-          },
-        );
-        return;
-      }
-      await this.bot.telegram.sendMessage(
-        userId,
-        this.appService.appSettings.helloText,
+    },
+    {
+      id: 'service2',
+      product: '🇧🇾 Тренер Беларусь 120',
+      description: 'Jumping Universe',
+      price: 12000,
+      currency: 'BYN',
+    },
+    {
+      id: 'service3',
+      product: '🇰🇿 Тренер Казахстан 120',
+      description: 'Jumping Universe',
+      price: 12000,
+      currency: 'BYN',
+    },
+  ];
+  priceListLong = [
+    {
+      long: 1,
+      price: [
         {
-          parse_mode: 'HTML',
-          protect_content: true,
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: 'Канал Jumping Universe',
-                  callback_data: 'takeChannel',
-                },
-              ],
-              [
-                {
-                  text: 'Обучение online',
-                  callback_data: 'takeStudy',
-                },
-              ],
-            ],
-          },
+          id: 'service4',
+          product: '🇷🇺 Тренер Россия 95',
+          description: 'Jumping Universe',
+          price: 9500,
+          currency: 'BYN',
         },
-      );
-      return;
-    }
-    console.log('Start message nor work');
+        {
+          id: 'service5',
+          product: '🇧🇾 Тренер Беларусь 70',
+          description: 'Jumping Universe',
+          price: 7000,
+          currency: 'BYN',
+        },
+        {
+          id: 'service6',
+          product: '🇰🇿 Тренер Казахстан 70',
+          description: 'Jumping Universe',
+          price: 7000,
+          currency: 'BYN',
+        },
+      ],
+    },
+    {
+      long: 3,
+      price: [
+        {
+          id: 'service7',
+          product: '🇷🇺 Тренер Россия 260',
+          description: 'Jumping Universe',
+          price: 26000,
+          currency: 'BYN',
+        },
+        {
+          id: 'service8',
+          product: '🇧🇾 Тренер Беларусь 195',
+          description: 'Jumping Universe',
+          price: 19500,
+          currency: 'BYN',
+        },
+        {
+          id: 'service9',
+          product: '🇰🇿 Тренер Казахстан 195',
+          description: 'Jumping Universe',
+          price: 19500,
+          currency: 'BYN',
+        },
+      ],
+    },
+    {
+      long: 6,
+      price: [
+        {
+          id: 'service10',
+          product: '🇷🇺 Тренер Россия 480',
+          description: 'Jumping Universe',
+          price: 48000,
+          currency: 'BYN',
+        },
+        {
+          id: 'service11',
+          product: '🇧🇾 Тренер Беларусь 370',
+          description: 'Jumping Universe',
+          price: 37000,
+          currency: 'BYN',
+        },
+        {
+          id: 'service12',
+          product: '🇰🇿 Тренер Казахстан 370',
+          description: 'Jumping Universe',
+          price: 37000,
+          currency: 'BYN',
+        },
+      ],
+    },
+  ];
+
+  async invoice(
+    userId: number,
+    productId: string,
+    user: UserDocument,
+    app: AppDocument,
+  ) {
+    const list = this.priceList.concat(
+      this.priceListLong.map((l) => l.price).flat(),
+    );
+    const product = list.find((p) => p.id === productId)!;
+    await this.botMessageService.sendMessageinvoice(
+      userId,
+      product.product,
+      product.description,
+      product.price,
+      `${userId}|${product.id}|${Date.now()}`,
+      user,
+      app,
+    );
+  }
+
+  async listProductsLong(
+    userId: number,
+    long: number,
+    user: UserDocument,
+    app: AppDocument,
+  ) {
+    const text = 'Выбирай';
+    const buttons = [
+      ...this.priceListLong
+        .find((l) => l.long === long)!
+        .price.map((prod) => [
+          {
+            text: `${prod.product} ${prod.currency}`,
+            callback_data: `invoice|${prod.id}`,
+          },
+        ]),
+    ];
+    buttons.push([
+      {
+        text: 'Назад',
+        callback_data: 'takeChannelLong',
+      },
+    ]);
+    await this.botMessageService.sendMessageToUserTextButtons(
+      userId,
+      text,
+      buttons,
+      user,
+      app,
+    );
+  }
+
+  async listProductsForOldUsers(
+    telegramId: number,
+    text: string,
+    user: UserDocument,
+    app: AppDocument,
+  ) {
+    const endText = (index: number) => {
+      if (index === 1) return 'месяц 🚀';
+      if (index === 3) return 'месяца 🚀🚀🚀';
+      if (index === 6) return 'месяцев 🚀🚀🚀🚀🚀🚀';
+    };
+    const buttons = [
+      ...this.priceListLong.map((prod) => [
+        {
+          text: `Подписка на ${prod.long} ${endText(prod.long)}`,
+          callback_data: `long|${prod.long}`,
+        },
+      ]),
+    ];
+    buttons.push([
+      {
+        text: 'Назад',
+        callback_data: 'backToMainMenu',
+      },
+    ]);
+    await this.botMessageService.sendMessageToUserTextButtons(
+      telegramId,
+      text,
+      buttons,
+      user,
+      app,
+    );
+  }
+
+  async listProducts(telegramId: number, user: UserDocument, app: AppDocument) {
+    const text = 'Выбирай';
+    const buttons = [
+      ...this.priceList.map((prod) => [
+        {
+          text: `${prod.product} ${prod.currency}`,
+          callback_data: `invoice|${prod.id}`,
+        },
+      ]),
+    ];
+    buttons.push([
+      {
+        text: 'Назад',
+        callback_data: 'backToMainMenu',
+      },
+    ]);
+    await this.botMessageService.sendMessageToUserTextButtons(
+      telegramId,
+      text,
+      buttons,
+      user,
+      app,
+    );
+  }
+
+  async startBotMessage(userId: number, user: UserDocument, app: AppDocument) {
+    const photo = app.startMessagePhoto;
+    const text = app.helloText;
+    const buttons = [
+      [
+        {
+          text: 'Канал Jumping Universe',
+          callback_data: 'takeChannel',
+        },
+      ],
+      [{ text: 'Обучение online', callback_data: 'takeStudy' }],
+    ];
+
+    await this.botMessageService.sendMessageToUserPhotoTextButtons(
+      userId,
+      photo,
+      text,
+      buttons,
+      user,
+      app,
+    );
   }
 
   async isUserActive(userId: number): Promise<boolean> {
@@ -145,10 +285,6 @@ export class BotService {
     }
   }
 
-  async sendTextMessage(userId: number, text: string) {
-    await this.bot.telegram.sendMessage(userId, text);
-  }
-
   async sendOneTimeInvite(userId: number) {
     const chatId = this.config.get<string>('ID_CHANNEL')!;
     const time = Number(this.config.get<string>('TIME_LIFE_LINK')!);
@@ -164,18 +300,16 @@ export class BotService {
     );
   }
 
-  async alertUserHaveAccess(userId: string) {
-    await this.bot.telegram.sendMessage(
-      Number(userId),
-      'Выполнен вход в панель администратора',
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: 'Закрыть доступ', callback_data: 'closeAccess' }],
-          ],
-        },
-      },
-    );
+  async removeAndUnbanUser(telegramId: number) {
+    try {
+      const chat = this.config.get<string>('ID_CHANNEL')!;
+      await this.bot.telegram.banChatMember(chat, telegramId);
+      await this.bot.telegram.unbanChatMember(chat, telegramId);
+      return true;
+    } catch (er) {
+      console.log(er);
+      return false;
+    }
   }
 
   private isTelegramError(

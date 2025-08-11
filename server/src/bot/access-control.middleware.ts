@@ -1,0 +1,36 @@
+import { MiddlewareFn } from 'telegraf';
+import { Context } from 'telegraf';
+import { ModuleRef } from '@nestjs/core';
+import { UserService } from 'src/user/user.service';
+import { UserDocument } from 'src/user/user.schema';
+import { AppService } from 'src/app/app.service';
+import { AppDocument } from 'src/app/app.schema';
+
+export interface ContextWithUser extends Context {
+  user?: UserDocument;
+  app?: AppDocument;
+}
+
+export const accessControlMiddleware = (): MiddlewareFn<ContextWithUser> => {
+  return async (ctx, next) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const moduleRef: ModuleRef | undefined = ctx.state?.moduleRef;
+    if (!moduleRef) return next();
+
+    const from = ctx.from;
+    if (!from) return;
+
+    const userService = moduleRef.get(UserService, { strict: false });
+    const userDoc = await userService.createOrUpdateUser(from);
+    if (!userDoc) return;
+
+    const appService = moduleRef.get(AppService, { strict: false });
+    const appDoc = await appService.getAppSettings();
+    if (!appDoc) return;
+
+    ctx.user = userDoc;
+    ctx.app = appDoc;
+
+    await next();
+  };
+};

@@ -1,22 +1,20 @@
-import {
-  CallbackQuery,
-  Message,
-  Update as UpdateTelegraf,
-} from '@telegraf/types';
+import { Update as UpdateTelegraf } from '@telegraf/types';
 import { BotService } from './bot.service';
 import {
   Action,
   // Command,
   Ctx,
+  InjectBot,
   // Hears,
   On,
   Start,
   Update,
 } from 'nestjs-telegraf';
 import { AppService } from 'src/app/app.service';
-import { UserService } from 'src/user/user.service';
-import { Context, NarrowedContext } from 'telegraf';
+import { Context, NarrowedContext, Telegraf } from 'telegraf';
 import { ConfigService } from '@nestjs/config';
+import { Message } from 'telegraf/typings/core/types/typegram';
+import { UserTelegrafContextWithUserMongo } from './interfaces/UserTelegrafContextWithUserMongo';
 
 export type UserTelegrafContext = NarrowedContext<
   Context,
@@ -26,57 +24,115 @@ export type UserTelegrafContext = NarrowedContext<
 @Update()
 export class TelegramGateway {
   constructor(
+    @InjectBot() private bot: Telegraf,
     private botService: BotService,
     private appService: AppService,
-    private userService: UserService,
     private readonly config: ConfigService,
   ) {}
 
   @Start()
-  async start(@Ctx() ctx: UserTelegrafContext) {
-    console.log('Your Chat ID:', ctx.chat.id);
-    await this.userService.createUserOrUpdateUser(ctx.from);
-    await this.botService.startBotMessage(ctx.from.id);
+  async start(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
+    console.log('Your ID:', ctx.from.id);
+    console.log(ctx.user);
+    console.log(ctx.app);
+    await this.botService.startBotMessage(ctx.from.id, ctx.user, ctx.app);
   }
 
   @Action('backToMainMenu')
-  async backToMainMenu(@Ctx() ctx: Context) {
+  async backToMainMenu(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
     console.log('backToMainMenu');
-    if (ctx.from) {
-      await this.botService.startBotMessage(ctx.from.id);
-    }
+    await this.botService.startBotMessage(ctx.from.id, ctx.user, ctx.app);
     await ctx.answerCbQuery();
   }
 
   @Action('takeChannel')
-  async takeChannel(@Ctx() ctx: Context) {
+  async takeChannel(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
     console.log('takeChannel');
-    if (ctx.from) {
-      await this.botService.setCountryForOrder(ctx.from.id);
+    if (ctx.user.isSubscribed) {
+      await this.botService.listProductsForOldUsers(
+        ctx.from.id,
+        'Выбирай',
+        ctx.user,
+        ctx.app,
+      );
+    } else {
+      await this.botService.listProducts(ctx.from.id, ctx.user, ctx.app);
     }
     await ctx.answerCbQuery();
   }
 
+  // @Action('takeChannelLong')
+  // async takeChannelLong(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
+  //   console.log('takeChannelLong');
+  //   await this.botService.listProductsForOldUsers(
+  //     ctx.from.id,
+  //     ctx.user,
+  //     ctx.app,
+  //   );
+  //   await ctx.answerCbQuery();
+  // }
+
+  @On('pre_checkout_query')
+  async onPreCheckoutQuery(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
+    console.log('pre_checkout_query');
+    console.log(ctx.update['pre_checkout_query']);
+    await ctx.answerPreCheckoutQuery(true).then((res) => {
+      console.log(res);
+    });
+  }
+
+  @On('successful_payment')
+  async onSuccessfulPayment(@Ctx() ctx: Context) {
+    console.log('successful_payment');
+    const update = ctx.update as UpdateTelegraf.MessageUpdate;
+    if (
+      update.message &&
+      'successful_payment' in update.message &&
+      update.message.successful_payment
+    ) {
+      const message = update.message as Message.SuccessfulPaymentMessage;
+      const payment = message.successful_payment;
+
+      await ctx.reply(
+        `Спасибо за оплату на сумму ${payment.total_amount / 100} ${payment.currency}!`,
+      );
+    } else {
+      console.warn('Update не содержит успешной оплаты');
+    }
+  }
+
   @On('callback_query')
-  async invoice(@Ctx() ctx: Context) {
-    const callbackQuery = ctx.callbackQuery as CallbackQuery.DataQuery;
-    const data = callbackQuery.data;
+  async invoice(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
+    const data = ctx.callbackQuery.data;
+    if (!data) return;
 
     if (!data) return;
     const invoice = data.split('|');
 
     if (invoice[0] === 'invoice') {
-      const service = invoice[1];
-      const price = Number(invoice[2]);
-      if (ctx.from) await this.botService.invoice(ctx.from.id, service, price);
-      console.log(invoice);
-      console.log(ctx.from?.id);
+      const productId = invoice[1];
+      if (ctx.from)
+        await this.botService.invoice(
+          ctx.from.id,
+          productId,
+          ctx.user,
+          ctx.app,
+        );
+    } else if (invoice[0] === 'long') {
+      const productId = invoice[1];
+      if (ctx.from)
+        await this.botService.listProductsLong(
+          ctx.from.id,
+          Number(productId),
+          ctx.user,
+          ctx.app,
+        );
     }
     await ctx.answerCbQuery();
   }
 
   @On('text')
-  async onText(@Ctx() ctx: Context) {
+  async Context(@Ctx() ctx: Context) {
     const message = ctx.message as Message.TextMessage;
     const text = message.text;
 
