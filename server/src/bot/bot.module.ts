@@ -10,12 +10,16 @@ import { ModuleRef } from '@nestjs/core';
 import { accessControlMiddleware } from './access-control.middleware';
 import { BotManagerNotificationService } from './bot.managerNotification';
 import { BotUserNotificationService } from './bot.userNotification copy';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ControlSub } from './controlSub.service';
 
 @Module({
   imports: [
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    ScheduleModule.forRoot(),
     forwardRef(() => UserModule),
     TelegrafModule.forRootAsync({
-      imports: [],
+      imports: [UserModule],
       inject: [ConfigService, ModuleRef],
       useFactory: (config: ConfigService, moduleRef: ModuleRef) => ({
         token: config.get<string>('BOT_TOKEN')!,
@@ -45,6 +49,7 @@ import { BotUserNotificationService } from './bot.userNotification copy';
     BotMessageService,
     BotManagerNotificationService,
     BotUserNotificationService,
+    ControlSub,
   ],
   exports: [
     BotService,

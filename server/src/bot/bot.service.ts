@@ -5,6 +5,8 @@ import { Telegraf } from 'telegraf';
 import { BotMessageService } from './bot.message';
 import { AppDocument } from 'src/app/app.schema';
 import { UserDocument } from 'src/user/user.schema';
+import { AppService } from 'src/app/app.service';
+import { BotManagerNotificationService } from './bot.managerNotification';
 
 @Injectable()
 export class BotService {
@@ -12,6 +14,8 @@ export class BotService {
     @InjectBot() private bot: Telegraf,
     private readonly config: ConfigService,
     private botMessageService: BotMessageService,
+    private botManagerNotificationService: BotManagerNotificationService,
+    private appService: AppService,
   ) {
     console.log('BotService initialized');
   }
@@ -23,6 +27,8 @@ export class BotService {
       description: 'Оплата за вход в канал Jumping Universe',
       price: 15000,
       currency: 'BYN',
+      duration: 1,
+      new: true,
     },
     {
       id: 'service2',
@@ -30,6 +36,8 @@ export class BotService {
       description: 'Оплата за вход в канал Jumping Universe',
       price: 12000,
       currency: 'BYN',
+      duration: 1,
+      new: true,
     },
     {
       id: 'service3',
@@ -37,88 +45,171 @@ export class BotService {
       description: 'Оплата за вход в канал Jumping Universe',
       price: 12000,
       currency: 'BYN',
+      duration: 1,
+      new: true,
+    },
+    {
+      id: 'service4',
+      product: '🇷🇺 Тренер Россия',
+      description: 'Продление на 1 месяц в Jumping Universe',
+      price: 9500,
+      currency: 'BYN',
+      duration: 1,
+      new: false,
+    },
+    {
+      id: 'service5',
+      product: '🇧🇾 Тренер Беларусь',
+      description: 'Продление на 1 месяц в Jumping Universe',
+      price: 7000,
+      currency: 'BYN',
+      duration: 1,
+      new: false,
+    },
+    {
+      id: 'service6',
+      product: '🇰🇿 Тренер Казахстан',
+      description: 'Продление на 1 месяц в Jumping Universe',
+      price: 7000,
+      currency: 'BYN',
+      duration: 1,
+      new: false,
+    },
+    {
+      id: 'service7',
+      product: '🇷🇺 Тренер Россия',
+      description: 'Продление на 3 месяца в Jumping Universe',
+      price: 26000,
+      currency: 'BYN',
+      duration: 3,
+      new: false,
+    },
+    {
+      id: 'service8',
+      product: '🇧🇾 Тренер Беларусь',
+      description: 'Продление на 3 месяца в Jumping Universe',
+      price: 19500,
+      currency: 'BYN',
+      duration: 3,
+      new: false,
+    },
+    {
+      id: 'service9',
+      product: '🇰🇿 Тренер Казахстан',
+      description: 'Продление на 3 месяца в Jumping Universe',
+      price: 19500,
+      currency: 'BYN',
+      duration: 3,
+      new: false,
+    },
+    {
+      id: 'service10',
+      product: '🇷🇺 Тренер Россия',
+      description: 'Продление на 6 месяцев в Jumping Universe',
+      price: 48000,
+      currency: 'BYN',
+      duration: 6,
+      new: false,
+    },
+    {
+      id: 'service11',
+      product: '🇧🇾 Тренер Беларусь',
+      description: 'Продление на 6 месяцев в Jumping Universe',
+      price: 37000,
+      currency: 'BYN',
+      duration: 6,
+      new: false,
+    },
+    {
+      id: 'service12',
+      product: '🇰🇿 Тренер Казахстан',
+      description: 'Продление на 6 месяцев в Jumping Universe',
+      price: 37000,
+      currency: 'BYN',
+      duration: 6,
+      new: false,
     },
   ];
-  priceListLong = [
-    {
-      long: 1,
-      price: [
-        {
-          id: 'service4',
-          product: '🇷🇺 Тренер Россия',
-          description: 'Продление на 1 месяц в Jumping Universe',
-          price: 9500,
-          currency: 'BYN',
-        },
-        {
-          id: 'service5',
-          product: '🇧🇾 Тренер Беларусь',
-          description: 'Продление на 1 месяц в Jumping Universe',
-          price: 7000,
-          currency: 'BYN',
-        },
-        {
-          id: 'service6',
-          product: '🇰🇿 Тренер Казахстан',
-          description: 'Продление на 1 месяц в Jumping Universe',
-          price: 7000,
-          currency: 'BYN',
-        },
-      ],
-    },
-    {
-      long: 3,
-      price: [
-        {
-          id: 'service7',
-          product: '🇷🇺 Тренер Россия',
-          description: 'Продление на 3 месяца в Jumping Universe',
-          price: 26000,
-          currency: 'BYN',
-        },
-        {
-          id: 'service8',
-          product: '🇧🇾 Тренер Беларусь',
-          description: 'Продление на 3 месяца в Jumping Universe',
-          price: 19500,
-          currency: 'BYN',
-        },
-        {
-          id: 'service9',
-          product: '🇰🇿 Тренер Казахстан',
-          description: 'Продление на 3 месяца в Jumping Universe',
-          price: 19500,
-          currency: 'BYN',
-        },
-      ],
-    },
-    {
-      long: 6,
-      price: [
-        {
-          id: 'service10',
-          product: '🇷🇺 Тренер Россия',
-          description: 'Продление на 6 месяцев в Jumping Universe',
-          price: 48000,
-          currency: 'BYN',
-        },
-        {
-          id: 'service11',
-          product: '🇧🇾 Тренер Беларусь',
-          description: 'Продление на 6 месяцев в Jumping Universe',
-          price: 37000,
-          currency: 'BYN',
-        },
-        {
-          id: 'service12',
-          product: '🇰🇿 Тренер Казахстан',
-          description: 'Продление на 6 месяцев в Jumping Universe',
-          price: 37000,
-          currency: 'BYN',
-        },
-      ],
-    },
-  ];
+  // priceListLong = [
+  //   {
+  //     long: 1,
+  //     price: [
+  //       {
+  //         id: 'service4',
+  //         product: '🇷🇺 Тренер Россия',
+  //         description: 'Продление на 1 месяц в Jumping Universe',
+  //         price: 9500,
+  //         currency: 'BYN',
+  //       },
+  //       {
+  //         id: 'service5',
+  //         product: '🇧🇾 Тренер Беларусь',
+  //         description: 'Продление на 1 месяц в Jumping Universe',
+  //         price: 7000,
+  //         currency: 'BYN',
+  //       },
+  //       {
+  //         id: 'service6',
+  //         product: '🇰🇿 Тренер Казахстан',
+  //         description: 'Продление на 1 месяц в Jumping Universe',
+  //         price: 7000,
+  //         currency: 'BYN',
+  //       },
+  //     ],
+  //   },
+  //   {
+  //     long: 3,
+  //     price: [
+  //       {
+  //         id: 'service7',
+  //         product: '🇷🇺 Тренер Россия',
+  //         description: 'Продление на 3 месяца в Jumping Universe',
+  //         price: 26000,
+  //         currency: 'BYN',
+  //       },
+  //       {
+  //         id: 'service8',
+  //         product: '🇧🇾 Тренер Беларусь',
+  //         description: 'Продление на 3 месяца в Jumping Universe',
+  //         price: 19500,
+  //         currency: 'BYN',
+  //       },
+  //       {
+  //         id: 'service9',
+  //         product: '🇰🇿 Тренер Казахстан',
+  //         description: 'Продление на 3 месяца в Jumping Universe',
+  //         price: 19500,
+  //         currency: 'BYN',
+  //       },
+  //     ],
+  //   },
+  //   {
+  //     long: 6,
+  //     price: [
+  //       {
+  //         id: 'service10',
+  //         product: '🇷🇺 Тренер Россия',
+  //         description: 'Продление на 6 месяцев в Jumping Universe',
+  //         price: 48000,
+  //         currency: 'BYN',
+  //       },
+  //       {
+  //         id: 'service11',
+  //         product: '🇧🇾 Тренер Беларусь',
+  //         description: 'Продление на 6 месяцев в Jumping Universe',
+  //         price: 37000,
+  //         currency: 'BYN',
+  //       },
+  //       {
+  //         id: 'service12',
+  //         product: '🇰🇿 Тренер Казахстан',
+  //         description: 'Продление на 6 месяцев в Jumping Universe',
+  //         price: 37000,
+  //         currency: 'BYN',
+  //       },
+  //     ],
+  //   },
+  // ];
 
   async invoice(
     userId: number,
@@ -126,16 +217,13 @@ export class BotService {
     user: UserDocument,
     app: AppDocument,
   ) {
-    const list = this.priceList.concat(
-      this.priceListLong.map((l) => l.price).flat(),
-    );
-    const product = list.find((p) => p.id === productId)!;
+    const product = this.priceList.find((p) => p.id === productId)!;
     await this.botMessageService.sendMessageinvoice(
       userId,
       product.product,
       product.description,
       product.price,
-      `${userId}|${product.id}|${Date.now()}`,
+      `${userId}|${product.id}|${product.duration}|${Date.now()}|`,
       user,
       app,
     );
@@ -149,9 +237,9 @@ export class BotService {
   ) {
     const text = 'Из какой ты страны?';
     const buttons = [
-      ...this.priceListLong
-        .find((l) => l.long === long)!
-        .price.map((prod) => [
+      ...this.priceList
+        .filter((l) => l.duration === long)
+        .map((prod) => [
           {
             text: `${prod.product}`,
             callback_data: `invoice|${prod.id}`,
@@ -184,14 +272,17 @@ export class BotService {
       if (index === 3) return 'месяца 🚀🚀';
       if (index === 6) return 'месяцев 🚀🚀🚀';
     };
-    const buttons = [
-      ...this.priceListLong.map((prod) => [
-        {
-          text: `Продление на ${prod.long} ${endText(prod.long)}`,
-          callback_data: `long|${prod.long}`,
-        },
-      ]),
+    const res = [
+      ...new Set(
+        this.priceList.filter((prod) => !prod.new).map((prod) => prod.duration),
+      ),
     ];
+    const buttons = res.map((prod) => [
+      {
+        text: `Продление на ${prod} ${endText(prod)}`,
+        callback_data: `long|${prod}`,
+      },
+    ]);
     buttons.push([
       {
         text: 'Назад',
@@ -210,12 +301,14 @@ export class BotService {
   async listProducts(telegramId: number, user: UserDocument, app: AppDocument) {
     const text = 'Из какой вы страны?';
     const buttons = [
-      ...this.priceList.map((prod) => [
-        {
-          text: `${prod.product}`,
-          callback_data: `invoice|${prod.id}`,
-        },
-      ]),
+      ...this.priceList
+        .filter((prod) => prod.new)
+        .map((prod) => [
+          {
+            text: `${prod.product}`,
+            callback_data: `invoice|${prod.id}`,
+          },
+        ]),
     ];
     buttons.push([
       {
@@ -291,18 +384,37 @@ export class BotService {
     }
   }
 
-  async sendOneTimeInvite(userId: number) {
+  async sendOneTimeInvite(user: UserDocument) {
+    const app = await this.appService.getAppSettings();
+    if (!app) {
+      console.log('Ошибка отправки ссылки');
+      return;
+    }
     const chatId = this.config.get<string>('ID_CHANNEL')!;
     const time = Number(this.config.get<string>('TIME_LIFE_LINK')!);
     const expireDate = (Math.floor(Date.now() / 1000) + 3600) * time;
     const inviteLink = await this.bot.telegram.createChatInviteLink(chatId, {
       member_limit: 1,
       expire_date: expireDate,
-      name: `Invite for user ${userId}`,
+      name: `Invite for user ${user.telegramId}`,
     });
-    await this.bot.telegram.sendMessage(
-      userId,
+    const res = await this.botMessageService.sendMessageToUserTextButtons(
+      user.telegramId,
       `Ваша персональная ссылка для вступления в канал (действует следующее количество часов: ${time}):\n${inviteLink.invite_link}`,
+      [],
+      user,
+      app,
+    );
+    if (res) {
+      await this.botManagerNotificationService.simpleNotification(
+        user,
+        'Получил ссылку',
+      );
+      return;
+    }
+    await this.botManagerNotificationService.simpleNotification(
+      user,
+      'Не получил ссылку!',
     );
   }
 

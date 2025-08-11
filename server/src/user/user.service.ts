@@ -8,6 +8,19 @@ import { BotUserNotificationService } from 'src/bot/bot.userNotification copy';
 import { AppDocument } from 'src/app/app.schema';
 import { BotManagerNotificationService } from 'src/bot/bot.managerNotification';
 
+function addMonths(date: Date, months: number): Date {
+  const result = new Date(date);
+  result.setMonth(result.getMonth() + months);
+
+  // Если при добавлении месяцев день "перепрыгнул" в следующий месяц (например, 31 марта + 1 месяц = 31 апреля → 1 мая),
+  // то подкорректируем, чтобы вернуть последний день нужного месяца:
+  if (result.getDate() !== date.getDate()) {
+    result.setDate(0); // 0-й день месяца = последний день предыдущего месяца
+  }
+
+  return result;
+}
+
 @Injectable()
 export class UserService {
   constructor(
@@ -19,57 +32,86 @@ export class UserService {
     console.log('UserService initialized');
   }
 
+  async successfulPayment(
+    telegramId: number,
+    total_amount: number,
+    service: string,
+    long: number,
+  ) {
+    const user = await this.getUserByTelegramId(telegramId);
+    if (!user) return false;
+    const newOrder = { total_amount, service };
+    const now = new Date();
+    const exTime = addMonths(now, long);
+    user.payments.push(newOrder);
+    user.subscriptionExpiresAt = exTime;
+    user.notified24h = false;
+    user.notified72h = false;
+    await user.save();
+    await this.botManagerNotificationService.newPaymentNotification(user);
+    await this.botService.sendOneTimeInvite(user);
+    console.log('paymrnt');
+  }
+
+  async getUsersControl(): Promise<UserDocument[]> {
+    const now = new Date();
+    return await this.userModel.find({
+      subscriptionExpiresAt: {
+        $gte: new Date(now.getTime() - 72 * 60 * 60 * 1000),
+      },
+      status: { $nin: ['free', 'new'] },
+    });
+  }
+
+  async getUsers(): Promise<UserDocument[]> {
+    return await this.userModel.find();
+  }
+
+  async getUserByTelegramId(telegramId: number): Promise<UserDocument | null> {
+    return await this.userModel.findOne({ telegramId: telegramId });
+  }
+
   async controlTreeDaysUserNotification(user: UserDocument, app: AppDocument) {
-    if (user.subscriptionExpiresAt) {
-      let text: string;
-      const statusUser = await this.botService.isUserActive(user.telegramId);
-      if (statusUser) {
-        await this.botUserNotificationService.treeDaysNotification(user, app);
-        text = 'Напоминанение "3 дня" доставлено';
-      } else {
-        text =
-          'Напоминанение "3 дня" не доставлено, бот отключен пользователем';
-      }
-      await this.botManagerNotificationService.treeDaysNotification(user, text);
+    let text: string;
+    const statusUser = await this.botService.isUserActive(user.telegramId);
+    if (statusUser) {
+      await this.botUserNotificationService.treeDaysNotification(user, app);
+      text = 'Напоминанение "3 дня" доставлено';
+    } else {
+      text = 'Напоминанение "3 дня" не доставлено, бот отключен пользователем';
     }
+    await this.botManagerNotificationService.treeDaysNotification(user, text);
   }
 
   async controlLastUserNotification(user: UserDocument, app: AppDocument) {
-    if (user.subscriptionExpiresAt) {
-      let text: string;
-      const statusUser = await this.botService.isUserActive(user.telegramId);
-      if (statusUser) {
-        await this.botUserNotificationService.lastNotification(user, app);
-        text = 'Напоминанение "Последнее" доставлено';
-      } else {
-        text =
-          'Напоминанение "Последнее" не доставлено, бот отключен пользователем';
-      }
-      await this.botManagerNotificationService.lastNotification(user, text);
+    let text: string;
+    const statusUser = await this.botService.isUserActive(user.telegramId);
+    if (statusUser) {
+      await this.botUserNotificationService.lastNotification(user, app);
+      text = 'Напоминанение "Последнее" доставлено';
+    } else {
+      text =
+        'Напоминанение "Последнее" не доставлено, бот отключен пользователем';
     }
+    await this.botManagerNotificationService.lastNotification(user, text);
   }
 
   async controlUserForDelete(user: UserDocument) {
-    if (user.subscriptionExpiresAt) {
-      const res = await this.botService.removeAndUnbanUser(user.telegramId);
-      if (!res) {
-        console.log('Ошибка удаления');
-        return;
-      }
-      user.isSubscribed = false;
-      await user.save();
-      let text: string;
-      const statusUser = await this.botService.isUserActive(user.telegramId);
-      if (statusUser) {
-        text = 'Бот активен';
-      } else {
-        text = 'Бот отключен пользователем';
-      }
-      await this.botManagerNotificationService.deleteUserNotification(
-        user,
-        text,
-      );
+    const res = await this.botService.removeAndUnbanUser(user.telegramId);
+    if (!res) {
+      console.log('Ошибка удаления');
+      return;
     }
+    user.isSubscribed = false;
+    await user.save();
+    let text: string;
+    const statusUser = await this.botService.isUserActive(user.telegramId);
+    if (statusUser) {
+      text = 'Бот активен';
+    } else {
+      text = 'Бот отключен пользователем';
+    }
+    await this.botManagerNotificationService.deleteUserNotification(user, text);
   }
 
   async createOrUpdateUser(user: TelegramUser): Promise<UserDocument | null> {
@@ -90,7 +132,7 @@ export class UserService {
       firstName: user.first_name,
       lastName: user.last_name ?? '',
     });
-
+    await this.botManagerNotificationService.newUserNotification(created);
     return created.save();
   }
 }

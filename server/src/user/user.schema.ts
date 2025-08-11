@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { Payment, PaymentSchema } from './payment.schema';
 
 export type UserDocument = User & Document;
 
@@ -22,6 +23,9 @@ export class User {
   @Prop()
   lastMessageId: number;
 
+  @Prop()
+  lastInvoiceMessageId: number;
+
   @Prop({ default: 'new' })
   status: StatusUser;
 
@@ -30,6 +34,17 @@ export class User {
 
   @Prop()
   subscriptionExpiresAt: Date;
+
+  @Prop({ default: false })
+  notified72h: boolean;
+
+  @Prop({ default: false })
+  notified24h: boolean;
+
+  @Prop({ type: [PaymentSchema], default: [] })
+  payments: Payment[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.index({ subscriptionExpiresAt: 1, status: 1 });

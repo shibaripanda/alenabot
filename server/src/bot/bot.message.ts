@@ -5,12 +5,14 @@ import { AppDocument } from 'src/app/app.schema';
 import { UserDocument } from 'src/user/user.schema';
 import { Telegraf } from 'telegraf';
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram';
+import { BotManagerNotificationService } from './bot.managerNotification';
 
 @Injectable()
 export class BotMessageService {
   constructor(
     @InjectBot() private bot: Telegraf,
     private readonly config: ConfigService,
+    private botManagerNotificationService: BotManagerNotificationService,
   ) {
     console.log('BotMessageService initialized');
   }
@@ -40,6 +42,21 @@ export class BotMessageService {
         start_parameter: 'pay-service',
         send_email_to_provider: true,
         need_email: true,
+      })
+      .then(async (res) => {
+        if (user.lastInvoiceMessageId) {
+          await this.deleteOrEditOldMessage(
+            telegramId,
+            user.lastInvoiceMessageId,
+            app.startMessagePhoto,
+          );
+        }
+        user.lastInvoiceMessageId = res.message_id;
+        await user.save();
+        await this.botManagerNotificationService.simpleNotification(
+          user,
+          `Получил инвойс: ${service} ${price}`,
+        );
       })
       .catch((e) => {
         console.log(e);
@@ -72,30 +89,58 @@ export class BotMessageService {
     buttons: InlineKeyboardButton[][],
     user: UserDocument,
     app: AppDocument,
-  ) {
-    // await this.bot.telegram.sendChatAction(telegramId, 'typing');
-    await this.bot.telegram
-      .sendMessage(telegramId, text, {
-        reply_markup: {
-          inline_keyboard: buttons,
-        },
+  ): Promise<boolean> {
+    try {
+      const res = await this.bot.telegram.sendMessage(telegramId, text, {
+        reply_markup: { inline_keyboard: buttons },
         parse_mode: 'HTML',
         protect_content: true,
-      })
-      .then(async (res) => {
-        await this.deleteOrEditOldMessage(
-          telegramId,
-          user.lastMessageId,
-          app.startMessagePhoto,
-        );
-        user.lastMessageId = res.message_id;
-        await user.save();
-      })
-      .catch((e) => {
-        console.log(e);
-        console.log('Ошибка sendMessageToUserPhotoTextButtons');
       });
+
+      await this.deleteOrEditOldMessage(
+        telegramId,
+        user.lastMessageId,
+        app.startMessagePhoto,
+      );
+      user.lastMessageId = res.message_id;
+      await user.save();
+
+      return true; // успешная отправка
+    } catch (e) {
+      console.error('Ошибка sendMessageToUserTextButtons', e);
+      return false; // ошибка отправки
+    }
   }
+
+  // async sendMessageToUserTextButtons(
+  //   telegramId: number,
+  //   text: string,
+  //   buttons: InlineKeyboardButton[][],
+  //   user: UserDocument,
+  //   app: AppDocument,
+  // ) {
+  //   await this.bot.telegram
+  //     .sendMessage(telegramId, text, {
+  //       reply_markup: {
+  //         inline_keyboard: buttons,
+  //       },
+  //       parse_mode: 'HTML',
+  //       protect_content: true,
+  //     })
+  //     .then(async (res) => {
+  //       await this.deleteOrEditOldMessage(
+  //         telegramId,
+  //         user.lastMessageId,
+  //         app.startMessagePhoto,
+  //       );
+  //       user.lastMessageId = res.message_id;
+  //       await user.save();
+  //     })
+  //     .catch((e) => {
+  //       console.log(e);
+  //       console.log('Ошибка sendMessageToUserPhotoTextButtons');
+  //     });
+  // }
 
   async sendMessageToUserPhotoTextButtons(
     telegramId: number,

@@ -15,6 +15,7 @@ import { Context, NarrowedContext, Telegraf } from 'telegraf';
 import { ConfigService } from '@nestjs/config';
 import { Message } from 'telegraf/typings/core/types/typegram';
 import { UserTelegrafContextWithUserMongo } from './interfaces/UserTelegrafContextWithUserMongo';
+import { UserService } from 'src/user/user.service';
 
 export type UserTelegrafContext = NarrowedContext<
   Context,
@@ -28,13 +29,20 @@ export class TelegramGateway {
     private botService: BotService,
     private appService: AppService,
     private readonly config: ConfigService,
-  ) {}
+    private userService: UserService,
+  ) {
+    // super();
+
+    bot.on('pre_checkout_query', this.onPreCheckoutQuery.bind(this));
+    bot.on('successful_payment', this.onSuccessfulPayment.bind(this));
+  }
 
   @Start()
   async start(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
     console.log('Your ID:', ctx.from.id);
     console.log(ctx.user);
     console.log(ctx.app);
+    await ctx.deleteMessage();
     await this.botService.startBotMessage(ctx.from.id, ctx.user, ctx.app);
   }
 
@@ -94,9 +102,19 @@ export class TelegramGateway {
   }
 
   @On('pre_checkout_query')
-  async onPreCheckoutQuery(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
+  async onPreCheckoutQuery(@Ctx() ctx: Context) {
+    const update = ctx.update as UpdateTelegraf.PreCheckoutQueryUpdate;
+    console.log(update.pre_checkout_query.currency);
     console.log('pre_checkout_query');
-    console.log(ctx.update['pre_checkout_query']);
+    const total_amount = update.pre_checkout_query.total_amount;
+    const payload = update.pre_checkout_query.invoice_payload.split('|');
+    await this.userService.successfulPayment(
+      Number(payload[0]),
+      total_amount,
+      payload[1],
+      Number(payload[2]),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 3000));
     await ctx.answerPreCheckoutQuery(true).then((res) => {
       console.log(res);
       console.log(
@@ -148,6 +166,7 @@ export class TelegramGateway {
       await this.appService.setHelloText(helloText);
       await ctx.reply('✅ Ready');
     }
+    await ctx.deleteMessage();
   }
 
   @On('photo')
@@ -162,6 +181,7 @@ export class TelegramGateway {
       await this.appService.setHelloPhoto(fileId);
       await ctx.reply('✅ Ready');
     }
+    await ctx.deleteMessage();
   }
 
   // @Command('enter')
