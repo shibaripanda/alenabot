@@ -30,7 +30,12 @@ export class TelegramGateway {
     private appService: AppService,
     private readonly config: ConfigService,
     private userService: UserService,
-  ) {}
+  ) {
+    // this.bot.use(async (ctx, next) => {
+    //   console.log('Update received:', JSON.stringify(ctx.update, null, 2));
+    //   await next();
+    // });
+  }
 
   @On('chat_member')
   onChatMember(@Ctx() ctx: Context) {
@@ -113,7 +118,7 @@ export class TelegramGateway {
   @On('pre_checkout_query')
   async onPreCheckoutQuery(@Ctx() ctx: Context) {
     const update = ctx.update as UpdateTelegraf.PreCheckoutQueryUpdate;
-    console.log(update.pre_checkout_query.invoice_payload);
+    console.log(update.pre_checkout_query);
     console.log('pre_checkout_query');
     const total_amount = update.pre_checkout_query.total_amount;
     const payload = update.pre_checkout_query.invoice_payload.split('|');
@@ -123,22 +128,19 @@ export class TelegramGateway {
       payload[1],
       Number(payload[2]),
     );
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-    await this.bot.telegram.answerPreCheckoutQuery(
-      update.pre_checkout_query.id,
-      true,
-    );
-    // await ctx
-    //   .answerPreCheckoutQuery(update.pre_checkout_query, true)
-    //   .then((res) => {
-    //     console.log(res);
-    //     console.log(
-    //       new Date(Date.now()).toLocaleString('ru-RU', {
-    //         dateStyle: 'short',
-    //         timeStyle: 'medium',
-    //       }),
-    //     );
-    //   });
+    // await this.bot.telegram.answerPreCheckoutQuery(
+    //   update.pre_checkout_query.id,
+    //   true,
+    // );
+    await ctx.answerPreCheckoutQuery(true).then((res) => {
+      console.log(res);
+      console.log(
+        new Date(Date.now()).toLocaleString('ru-RU', {
+          dateStyle: 'short',
+          timeStyle: 'medium',
+        }),
+      );
+    });
   }
 
   @On('callback_query')

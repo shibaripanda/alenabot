@@ -3,14 +3,15 @@ import { UserService } from './user.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UserSchema } from './user.schema';
 import { BotModule } from 'src/bot/bot.module';
+import { TelegramService } from './telegram.service';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
     forwardRef(() => BotModule),
   ],
-  providers: [UserService],
+  providers: [UserService, TelegramService],
   controllers: [],
-  exports: [UserService],
+  exports: [UserService, TelegramService],
 })
 export class UserModule {}

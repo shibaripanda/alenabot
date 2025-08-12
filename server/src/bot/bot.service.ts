@@ -325,8 +325,13 @@ export class BotService {
     );
   }
 
-  async startBotMessage(userId: number, user: UserDocument, app: AppDocument) {
+  async startBotMessage(
+    telegramId: number,
+    user: UserDocument,
+    app: AppDocument,
+  ) {
     const photo = app.startMessagePhoto;
+    console.log(photo);
     const text = app.helloText;
     const buttons = [
       [
@@ -344,9 +349,19 @@ export class BotService {
       [{ text: 'Обучение online', callback_data: 'takeStudy' }],
     ];
 
-    await this.botMessageService.sendMessageToUserPhotoTextButtons(
-      userId,
-      photo,
+    if (photo) {
+      await this.botMessageService.sendMessageToUserPhotoTextButtons(
+        telegramId,
+        photo,
+        text,
+        buttons,
+        user,
+        app,
+      );
+      return;
+    }
+    await this.botMessageService.sendMessageToUserTextButtons(
+      telegramId,
       text,
       buttons,
       user,

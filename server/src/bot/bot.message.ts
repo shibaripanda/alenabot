@@ -26,6 +26,12 @@ export class BotMessageService {
     user: UserDocument,
     app: AppDocument,
   ) {
+    // const payloadObject = {
+    //   providerToken: this.config.get<string>('ALFA_TOKEN')!,
+    // };
+
+    // Преобразуем объект в строку JSON
+    // const payloadString = JSON.stringify(payloadObject);
     await this.bot.telegram
       .sendInvoice(telegramId, {
         title: service,
@@ -39,8 +45,11 @@ export class BotMessageService {
             amount: price,
           },
         ],
-        start_parameter: 'pay-service',
-        send_email_to_provider: true,
+        // provider_data: JSON.stringify({
+        //   providerToken: this.config.get<string>('ALFA_TOKEN')!,
+        // }),
+        // start_parameter: 'pay-service',
+        // send_email_to_provider: true,
         need_email: true,
       })
       .then(async (res) => {

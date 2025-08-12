@@ -7,6 +7,7 @@ import { BotService } from 'src/bot/bot.service';
 import { BotUserNotificationService } from 'src/bot/bot.userNotification copy';
 import { AppDocument } from 'src/app/app.schema';
 import { BotManagerNotificationService } from 'src/bot/bot.managerNotification';
+import { TelegramService } from './telegram.service';
 
 function addMonths(date: Date, months: number): Date {
   const result = new Date(date);
@@ -28,6 +29,7 @@ export class UserService {
     private botService: BotService,
     private botUserNotificationService: BotUserNotificationService,
     private botManagerNotificationService: BotManagerNotificationService,
+    private telegramService: TelegramService,
   ) {
     console.log('UserService initialized');
   }
@@ -51,6 +53,8 @@ export class UserService {
     await this.botManagerNotificationService.newPaymentNotification(user);
     await this.botService.sendOneTimeInvite(user);
     console.log('paymrnt');
+    const res = await this.telegramService.getChannelUsers();
+    console.log(res);
   }
 
   async getUsersControl(): Promise<UserDocument[]> {
