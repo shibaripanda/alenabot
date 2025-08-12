@@ -15,7 +15,6 @@ import { ControlSub } from './controlSub.service';
 
 @Module({
   imports: [
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     ScheduleModule.forRoot(),
     forwardRef(() => UserModule),
     TelegrafModule.forRootAsync({
@@ -29,6 +28,8 @@ import { ControlSub } from './controlSub.service';
           'callback_query',
           'pre_checkout_query',
           'successful_payment',
+          'chat_member',
+          'my_chat_member',
         ],
         middlewares: [
           (ctx, next) => {

@@ -31,10 +31,20 @@ export class BotManagerNotificationService {
 
   async newPaymentNotification(user: UserDocument) {
     const admin = this.config.get<number>('MANAGER_GROUP')!;
-    const text = `💰💰💰💰💰💰💰💰💰\n@${user.username}\n${user.firstName}\n${user.lastName}\n🤑🤑🤑🤑🤑🤑🤑🤑🤑`;
-    await this.bot.telegram.sendMessage(admin, text).catch((e) => {
-      console.log(e);
-    });
+    const payment = user.payments[user.payments.length - 1];
+    const sumUserPayments =
+      user.payments.reduce((acc, p) => acc + p.total_amount, 0) / 100;
+    const text = `💰💰💰💰💰💰💰💰💰\n@${user.username} | ${user.firstName} | ${user.lastName}\n${payment.service}\n<b>Оплата: ${payment.total_amount / 100}</b>\nСумма по клиенту: ${sumUserPayments}\n🤑🤑🤑🤑🤑🤑🤑🤑🤑`;
+    await this.bot.telegram
+      .sendMessage(admin, '💰', { parse_mode: 'HTML' })
+      .catch((e) => {
+        console.log(e);
+      });
+    await this.bot.telegram
+      .sendMessage(admin, text, { parse_mode: 'HTML' })
+      .catch((e) => {
+        console.log(e);
+      });
   }
 
   async treeDaysNotification(user: UserDocument, textStatus: string) {

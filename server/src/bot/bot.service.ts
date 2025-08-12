@@ -400,8 +400,8 @@ export class BotService {
     });
     const res = await this.botMessageService.sendMessageToUserTextButtons(
       user.telegramId,
-      `Ваша персональная ссылка для вступления в канал (действует следующее количество часов: ${time}):\n${inviteLink.invite_link}`,
-      [],
+      `Ваша персональная ссылка для вступления в канал (активна: ${time} час):\n${inviteLink.invite_link}\n/start`,
+      [[{ text: 'Ваша ссылка', url: inviteLink.invite_link }]],
       user,
       app,
     );
