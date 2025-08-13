@@ -36,6 +36,22 @@ export class UserService {
     console.log('UserService initialized');
   }
 
+  async checkPayment(telegramId: number): Promise<boolean> {
+    const user = await this.userModel.findOne({ telegramId }).exec();
+    if (!user) {
+      return false;
+    }
+    if (user.status === 'free') {
+      return true;
+    }
+    if (!user.subscriptionExpiresAt) {
+      return false;
+    }
+    const now = new Date();
+    const isValid = user.subscriptionExpiresAt > now;
+    return isValid;
+  }
+
   async successfulPayment(
     telegramId: number,
     total_amount: number,
@@ -111,8 +127,6 @@ export class UserService {
     if (!res) {
       text = 'Пользователь не удален из канала, по ошибке\n';
     }
-    user.isSubscribed = false;
-    await user.save();
     const statusUser = await this.botService.isUserActive(user.telegramId);
     if (statusUser) {
       text = text + 'Бот активен';

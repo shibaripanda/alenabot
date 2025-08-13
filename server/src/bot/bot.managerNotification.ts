@@ -21,6 +21,14 @@ export class BotManagerNotificationService {
     });
   }
 
+  async extraSimpleNotification(textStatus: string) {
+    const admin = this.config.get<number>('MANAGER_GROUP')!;
+    const text = `Уведомление\n==================\n${textStatus}`;
+    await this.bot.telegram.sendMessage(admin, text).catch((e) => {
+      console.log(e);
+    });
+  }
+
   async simpleNotification(user: UserDocument, textStatus: string) {
     const admin = this.config.get<number>('MANAGER_GROUP')!;
     const text = `Уведомление\n@${user.username} | ${user.firstName} | ${user.lastName}\n==================\n${textStatus}`;

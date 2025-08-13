@@ -2,10 +2,9 @@ import { Update as UpdateTelegraf } from '@telegraf/types';
 import { BotService } from './bot.service';
 import {
   Action,
-  // Command,
+  Command,
   Ctx,
   InjectBot,
-  // Hears,
   On,
   Start,
   Update,
@@ -37,19 +36,19 @@ export class TelegramGateway {
     // });
   }
 
-  @On('chat_member')
-  onChatMember(@Ctx() ctx: Context) {
-    const update = ctx.update as UpdateTelegraf.ChatMemberUpdate;
-    const member = update.chat_member;
-    console.log(member);
+  // @On('chat_member')
+  // onChatMember(@Ctx() ctx: Context) {
+  //   const update = ctx.update as UpdateTelegraf.ChatMemberUpdate;
+  //   const member = update.chat_member;
+  //   console.log(member);
 
-    // const user = await this.userService.getUserByTelegramId(userId);
+  // const user = await this.userService.getUserByTelegramId(userId);
 
-    // if (!user || user.subscriptionExpiresAt < new Date()) {
-    //   await ctx.telegram.banChatMember(ctx.chat.id, userId);
-    //   await ctx.telegram.unbanChatMember(ctx.chat.id, userId); // чтобы мог оплатить
-    // }
-  }
+  // if (!user || user.subscriptionExpiresAt < new Date()) {
+  //   await ctx.telegram.banChatMember(ctx.chat.id, userId);
+  //   await ctx.telegram.unbanChatMember(ctx.chat.id, userId); // чтобы мог оплатить
+  // }
+  // }
 
   @Start()
   async start(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
@@ -178,7 +177,10 @@ export class TelegramGateway {
     const message = ctx.message as Message.TextMessage;
     const text = message.text;
 
-    if (text.startsWith('sethellotext ')) {
+    if (
+      text.startsWith('sethellotext ') &&
+      ctx.from?.id === this.config.get<number>('SUPERADMIN')!
+    ) {
       const helloText = text.replace('sethellotext ', '').trim();
       await this.appService.setHelloText(helloText);
       await ctx.reply('✅ Ready');
@@ -192,7 +194,13 @@ export class TelegramGateway {
     const caption = message.caption;
     const photos = message.photo;
 
-    if (caption && caption == 'sethellophoto' && photos && photos.length > 0) {
+    if (
+      caption &&
+      caption == 'sethellophoto' &&
+      photos &&
+      photos.length > 0 &&
+      ctx.from?.id === this.config.get<number>('SUPERADMIN')!
+    ) {
       const largestPhoto = photos[photos.length - 1];
       const fileId = largestPhoto.file_id;
       await this.appService.setHelloPhoto(fileId);
@@ -201,95 +209,8 @@ export class TelegramGateway {
     await ctx.deleteMessage();
   }
 
-  // @Command('enter')
-  // async getAuthLink(@Ctx() ctx: UserTelegrafContext) {
-  //   if (ctx && ctx.from) {
-  //     await ctx.reply(this.appService.getAuthLink(ctx.from.id));
-  //   }
-  // }
-
-  // @On('pre_checkout_query')
-  // async onCheckout(@Ctx() ctx: Context) {
-  //   await ctx.answerPreCheckoutQuery(true);
-  // }
-
-  // @On('text')
-  // async onText(@Ctx() ctx: UserTelegrafContext) {
-  //   const message = ctx.message as Message.TextMessage;
-  //   const text = message.text;
-
-  //   if (text === '/pay') {
-  //     await ctx.replyWithInvoice({
-  //       title: 'Тестовая услуга',
-  //       description: 'Это описание услуги',
-  //       payload: 'test-payload-123',
-  //       provider_token: this.config.get<string>('ALFA_TOKEN')!,
-  //       currency: 'BYN',
-  //       prices: [{ label: 'Услуга', amount: 1500 }],
-  //       start_parameter: 'test-start',
-  //       send_email_to_provider: true,
-  //       need_email: true,
-  //     });
-  //   }
-  // }
-
-  // @On('successful_payment')
-  // async onPayment(@Ctx() ctx: UserTelegrafContext) {
-  //   const message = ctx.message as Message.SuccessfulPaymentMessage;
-
-  //   const payment = message.successful_payment;
-  //   await ctx.reply(
-  //     `✅ Платёж на сумму ${payment.total_amount / 100} ${payment.currency} прошёл успешно!`,
-  //   );
-  // }
-
-  // @On('chat_member')
-  // async onChatMemberUpdate(
-  //   @Ctx() ctx: NarrowedContext<Context, UpdateTelegraf.ChatMemberUpdate>,
-  // ) {
-  //   const update = ctx.update.chat_member;
-  //   const user = update.new_chat_member.user;
-  //   const chatId = update.chat.id;
-
-  //   if (!user || !chatId || update.new_chat_member.status !== 'member') return;
-
-  //   const telegramId = user.id;
-
-  //   // Проверка оплаты через сервис доступа
-  //   const hasAccess = true; //await this.accessService.hasAccess(telegramId) || true;
-
-  //   if (!hasAccess) {
-  //     // Удаляем пользователя, если нет доступа
-  //     await ctx.telegram.banChatMember(chatId, telegramId);
-  //     await ctx.telegram.unbanChatMember(chatId, telegramId);
-  //     await ctx.telegram.sendMessage(
-  //       telegramId,
-  //       '❌ У вас нет доступа. Оплатите подписку, чтобы вступить в канал.',
-  //     );
-  //   } else {
-  //     // Можно отправить приветствие, если хочешь
-  //     await ctx.telegram.sendMessage(
-  //       telegramId,
-  //       '👋 Добро пожаловать в канал!',
-  //     );
-  //   }
-  // }
-
-  // @Hears('hi')
-  // async hears(@Ctx() ctx: UserTelegrafContext) {
-  //   await ctx.reply('get hi');
-  // }
-
-  // @On('photo')
-  // async addNewOrderImages(@Ctx() ctx: UserTelegrafContext) {
-  //   await ctx.reply('get photo');
-  // }
-
-  // @Action('closeAccess')
-  // async closeAccess(@Ctx() ctx: UserTelegrafContext) {
-  //   console.log('Access close');
-  //   if (ctx.from) {
-  //     await this.botService.sendTextMessage(ctx.from.id, 'Доступ закрыт');
-  //   }
-  // }
+  @Command('enter')
+  commandPanel(@Ctx() ctx: Context) {
+    console.log(ctx);
+  }
 }
