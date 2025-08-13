@@ -8,6 +8,7 @@ import { BotUserNotificationService } from 'src/bot/bot.userNotification copy';
 import { AppDocument } from 'src/app/app.schema';
 import { BotManagerNotificationService } from 'src/bot/bot.managerNotification';
 import { TelegramService } from './telegram.service';
+import { ConfigService } from '@nestjs/config';
 
 function addMonths(date: Date, months: number): Date {
   const result = new Date(date);
@@ -30,6 +31,7 @@ export class UserService {
     private botUserNotificationService: BotUserNotificationService,
     private botManagerNotificationService: BotManagerNotificationService,
     private telegramService: TelegramService,
+    private readonly config: ConfigService,
   ) {
     console.log('UserService initialized');
   }
@@ -53,15 +55,18 @@ export class UserService {
     await this.botManagerNotificationService.newPaymentNotification(user);
     await this.botService.sendOneTimeInvite(user);
     console.log('paymrnt');
-    const res = await this.telegramService.getChannelUsers();
-    console.log(res);
+    // const res = await this.telegramService.getChannelUsers();
+    // console.log(res);
   }
 
   async getUsersControl(): Promise<UserDocument[]> {
     const now = new Date();
     return await this.userModel.find({
       subscriptionExpiresAt: {
-        $gte: new Date(now.getTime() - 72 * 60 * 60 * 1000),
+        $gte: new Date(
+          now.getTime() -
+            this.config.get<number>('TIME_3DAYS_CONTROL')! * 60 * 60 * 1000,
+        ),
       },
       status: { $nin: ['free', 'new'] },
     });
@@ -102,18 +107,17 @@ export class UserService {
 
   async controlUserForDelete(user: UserDocument) {
     const res = await this.botService.removeAndUnbanUser(user.telegramId);
+    let text: string = '';
     if (!res) {
-      console.log('Ошибка удаления');
-      return;
+      text = 'Пользователь не удален из канала, по ошибке\n';
     }
     user.isSubscribed = false;
     await user.save();
-    let text: string;
     const statusUser = await this.botService.isUserActive(user.telegramId);
     if (statusUser) {
-      text = 'Бот активен';
+      text = text + 'Бот активен';
     } else {
-      text = 'Бот отключен пользователем';
+      text = text + 'Бот отключен пользователем';
     }
     await this.botManagerNotificationService.deleteUserNotification(user, text);
   }

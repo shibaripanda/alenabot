@@ -415,21 +415,21 @@ export class BotService {
     });
     const res = await this.botMessageService.sendMessageToUserTextButtons(
       user.telegramId,
-      `Ваша персональная ссылка для вступления в канал (активна: ${time} час):\n${inviteLink.invite_link}\n/start`,
-      [[{ text: 'Ваша ссылка', url: inviteLink.invite_link }]],
+      `🎉 Ваше персональное приглашение в канал (активно: ${time} час)\n\n/start`,
+      [[{ text: 'Войти ✅', url: inviteLink.invite_link }]],
       user,
       app,
     );
     if (res) {
       await this.botManagerNotificationService.simpleNotification(
         user,
-        'Получил ссылку',
+        `✅\nПолучил ссылку\n${inviteLink.invite_link}`,
       );
       return;
     }
     await this.botManagerNotificationService.simpleNotification(
       user,
-      'Не получил ссылку!',
+      `⚠️\nНе получил ссылку!\n${inviteLink.invite_link}`,
     );
   }
 

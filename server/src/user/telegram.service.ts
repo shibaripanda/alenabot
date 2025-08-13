@@ -3,8 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions';
 import { Api } from 'telegram';
-// import { User } from './user.schema';
-// import { User } from 'telegraf/typings/core/types/typegram';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { NewMessage, NewMessageEvent } from 'telegram/events/NewMessage';
 
 interface User {
   telegramId: number;
@@ -21,15 +21,24 @@ export class TelegramService implements OnModuleInit {
   private readonly apiId: number;
   private readonly apiHash: string;
   private readonly stringSession: string;
-  private readonly channel: number | string;
+  private readonly channelId: number; // без -100
+  private lastKnownUsers: Set<number> = new Set();
 
   constructor(private readonly config: ConfigService) {
     this.apiId = Number(this.config.get<number>('API_ID')!);
     this.apiHash = this.config.get<string>('API_HASH')!;
     this.stringSession = this.config.get<string>('TELEGRAM_STRING_SESSION')!;
-    this.channel = this.config.get<number | string>('ID_CHANNEL')!;
 
-    if (!this.apiId || !this.apiHash || !this.stringSession || !this.channel) {
+    // сохраняем без -100
+    const rawChannel = this.config.get<number>('ID_CHANNEL')!;
+    this.channelId = Math.abs(Number(rawChannel));
+
+    if (
+      !this.apiId ||
+      !this.apiHash ||
+      !this.stringSession ||
+      !this.channelId
+    ) {
       throw new Error(
         'Отсутствуют обязательные параметры конфигурации Telegram',
       );
@@ -56,18 +65,41 @@ export class TelegramService implements OnModuleInit {
       });
 
       this.logger.log('Telegram client успешно инициализирован');
+
+      // Слушаем новые сообщения (в том числе сервисные)
+      this.client.addEventHandler((event: NewMessageEvent) => {
+        const msg = event.message;
+        if (
+          msg.isChannel &&
+          msg.chatId === this.channelId &&
+          msg.className === 'MessageService'
+        ) {
+          if (
+            msg.action instanceof Api.MessageActionChatAddUser ||
+            msg.action instanceof Api.MessageActionChatJoinedByLink
+          ) {
+            for (const userId of msg.action.users) {
+              this.logger.log(`Новый участник в канале: ${userId}`);
+              // здесь можно вызывать свой обработчик: сохранять в БД, отправлять уведомление и т.п.
+            }
+          }
+        }
+      }, new NewMessage({}));
+
+      this.logger.log('Подписка на события о новых участниках активна');
     } catch (error) {
       this.logger.error('Ошибка инициализации Telegram client', error);
       throw error;
     }
   }
 
-  async getChannelUsers(): Promise<User[]> {
+  @Cron(CronExpression.EVERY_HOUR)
+  async syncChannelUsers(): Promise<User[]> {
     if (!this.client) {
       throw new Error('Telegram client не инициализирован');
     }
 
-    const channelEntity = await this.client.getEntity(this.channel);
+    const channelEntity = await this.client.getEntity(this.channelId);
     const allMembers: User[] = [];
     let offset = 0;
     const limit = 100;
@@ -82,9 +114,7 @@ export class TelegramService implements OnModuleInit {
         }),
       );
 
-      if (!('users' in participants) || participants.users.length === 0) {
-        break;
-      }
+      if (!('users' in participants) || participants.users.length === 0) break;
 
       for (const user of participants.users) {
         if (user instanceof Api.User) {
@@ -100,6 +130,125 @@ export class TelegramService implements OnModuleInit {
       offset += participants.users.length;
     }
 
+    // Сохраняем список, чтобы сравнивать в будущем
+    const currentIds = new Set(allMembers.map((u) => u.telegramId));
+    const newUsers = [...currentIds].filter(
+      (id) => !this.lastKnownUsers.has(id),
+    );
+    if (newUsers.length > 0) {
+      this.logger.log(
+        `Найдено новых участников при синхронизации: ${newUsers.join(', ')}`,
+      );
+    }
+    this.lastKnownUsers = currentIds;
+
     return allMembers;
   }
 }
+
+// import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+// import { ConfigService } from '@nestjs/config';
+// import { TelegramClient } from 'telegram';
+// import { StringSession } from 'telegram/sessions';
+// import { Api } from 'telegram';
+// import { Cron, CronExpression } from '@nestjs/schedule';
+
+// interface User {
+//   telegramId: number;
+//   username: string | null;
+//   firstName: string | null;
+//   lastName: string | null;
+// }
+
+// @Injectable()
+// export class TelegramService implements OnModuleInit {
+//   private readonly logger = new Logger(TelegramService.name);
+//   private client: TelegramClient;
+
+//   private readonly apiId: number;
+//   private readonly apiHash: string;
+//   private readonly stringSession: string;
+//   private readonly channel: number | string;
+
+//   constructor(private readonly config: ConfigService) {
+//     this.apiId = Number(this.config.get<number>('API_ID')!);
+//     this.apiHash = this.config.get<string>('API_HASH')!;
+//     this.stringSession = this.config.get<string>('TELEGRAM_STRING_SESSION')!;
+//     this.channel = this.config.get<number | string>('ID_CHANNEL')!;
+
+//     if (!this.apiId || !this.apiHash || !this.stringSession || !this.channel) {
+//       throw new Error(
+//         'Отсутствуют обязательные параметры конфигурации Telegram',
+//       );
+//     }
+//   }
+
+//   async onModuleInit() {
+//     try {
+//       this.client = new TelegramClient(
+//         new StringSession(this.stringSession),
+//         this.apiId,
+//         this.apiHash,
+//         { connectionRetries: 5 },
+//       );
+
+//       await this.client.start({
+//         // eslint-disable-next-line @typescript-eslint/require-await
+//         phoneNumber: async () => '',
+//         // eslint-disable-next-line @typescript-eslint/require-await
+//         phoneCode: async () => '',
+//         // eslint-disable-next-line @typescript-eslint/require-await
+//         password: async () => '',
+//         onError: (err) => this.logger.error('Ошибка авторизации', err),
+//       });
+
+//       this.logger.log('Telegram client успешно инициализирован');
+//     } catch (error) {
+//       this.logger.error('Ошибка инициализации Telegram client', error);
+//       throw error;
+//     }
+//   }
+
+//   @Cron(CronExpression.EVERY_5_MINUTES)
+//   async getChannelUsers(): Promise<User[]> {
+//     if (!this.client) {
+//       throw new Error('Telegram client не инициализирован');
+//     }
+
+//     const channelEntity = await this.client.getEntity(this.channel);
+//     const allMembers: User[] = [];
+//     let offset = 0;
+//     const limit = 100;
+
+//     while (true) {
+//       const participants = await this.client.invoke(
+//         new Api.channels.GetParticipants({
+//           channel: channelEntity,
+//           filter: new Api.ChannelParticipantsRecent(),
+//           offset,
+//           limit,
+//         }),
+//       );
+
+//       if (!('users' in participants) || participants.users.length === 0) {
+//         break;
+//       }
+
+//       for (const user of participants.users) {
+//         if (user instanceof Api.User) {
+//           allMembers.push({
+//             telegramId: Number(user.id),
+//             username: user.username ?? null,
+//             firstName: user.firstName ?? null,
+//             lastName: user.lastName ?? null,
+//           });
+//         }
+//       }
+
+//       offset += participants.users.length;
+//     }
+//     console.log(allMembers);
+
+//     return allMembers;
+//   }
+// }

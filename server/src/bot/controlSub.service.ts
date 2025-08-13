@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AppService } from 'src/app/app.service';
 import { UserService } from 'src/user/user.service';
@@ -8,6 +9,7 @@ export class ControlSub {
   constructor(
     private readonly userService: UserService,
     private readonly appService: AppService,
+    private readonly config: ConfigService,
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
@@ -29,8 +31,10 @@ export class ControlSub {
       const diffMs = user.subscriptionExpiresAt.getTime() - now.getTime();
 
       if (
-        diffMs <= 72 * 60 * 60 * 1000 &&
-        diffMs > 24 * 60 * 60 * 1000 &&
+        diffMs <=
+          this.config.get<number>('TIME_3DAYS_CONTROL')! * 60 * 60 * 1000 &&
+        diffMs >
+          this.config.get<number>('TIME_1DAY_CONTROL')! * 60 * 60 * 1000 &&
         !user.notified72h
       ) {
         await this.userService.controlTreeDaysUserNotification(user, app);
@@ -38,7 +42,12 @@ export class ControlSub {
         await user.save();
       }
 
-      if (diffMs <= 24 * 60 * 60 * 1000 && diffMs > 0 && !user.notified24h) {
+      if (
+        diffMs <=
+          this.config.get<number>('TIME_1DAY_CONTROL')! * 60 * 60 * 1000 &&
+        diffMs > 0 &&
+        !user.notified24h
+      ) {
         await this.userService.controlLastUserNotification(user, app);
         user.notified24h = true;
         await user.save();
