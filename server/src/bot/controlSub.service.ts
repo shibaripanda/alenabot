@@ -37,6 +37,7 @@ export class ControlSub {
           this.config.get<number>('TIME_1DAY_CONTROL')! * 60 * 60 * 1000 &&
         !user.notified72h
       ) {
+        console.log('3 day');
         await this.userService.controlTreeDaysUserNotification(user, app);
         user.notified72h = true;
         await user.save();
@@ -48,12 +49,14 @@ export class ControlSub {
         diffMs > 0 &&
         !user.notified24h
       ) {
+        console.log('1 day');
         await this.userService.controlLastUserNotification(user, app);
         user.notified24h = true;
         await user.save();
       }
 
       if (diffMs <= 0) {
+        console.log('delete');
         await this.userService.controlUserForDelete(user);
         user.status = 'new';
         user.notified72h = false;

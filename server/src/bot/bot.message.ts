@@ -192,7 +192,6 @@ export class BotMessageService {
   ) {
     try {
       await this.bot.telegram.deleteMessage(telegramId, message_id);
-      console.log(`Message ${message_id} deleted successfully`);
     } catch (deleteError) {
       console.log(`Delete failed: ${deleteError}`);
 
@@ -210,7 +209,6 @@ export class BotMessageService {
           undefined,
           undefined,
         );
-        console.log(`Message ${message_id} cleaned by editing text and markup`);
       } catch (editError) {
         console.log(`Edit message text failed: ${editError}`);
 
@@ -232,7 +230,6 @@ export class BotMessageService {
               undefined,
               undefined,
             );
-            console.log(`Message ${message_id} cleaned by editing media`);
           } catch (mediaError) {
             console.log(`Edit message media failed: ${mediaError}`);
           }

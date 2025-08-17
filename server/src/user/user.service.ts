@@ -61,16 +61,18 @@ export class UserService {
     const user = await this.getUserByTelegramId(telegramId);
     if (!user) return false;
     const newOrder = { total_amount, service };
-    const now = new Date();
-    const exTime = addMonths(now, long);
+    // const now = new Date();
+    // const exTime = addMonths(now, long);
     user.payments.push(newOrder);
-    user.subscriptionExpiresAt = exTime;
+    // user.subscriptionExpiresAt = exTime;
+    user.subscriptionExpiresAt = new Date(Date.now() + 600000);
     user.notified24h = false;
     user.notified72h = false;
+    user.status = 'old';
     await user.save();
     await this.botManagerNotificationService.newPaymentNotification(user);
     await this.botService.sendOneTimeInvite(user);
-    console.log('paymrnt');
+    console.log('payment');
     // const res = await this.telegramService.getChannelUsers();
     // console.log(res);
   }

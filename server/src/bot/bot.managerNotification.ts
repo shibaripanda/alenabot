@@ -57,7 +57,7 @@ export class BotManagerNotificationService {
 
   async treeDaysNotification(user: UserDocument, textStatus: string) {
     const admin = this.config.get<number>('MANAGER_GROUP')!;
-    const text = `${textStatus}\n----\n${user.lastName}`;
+    const text = `${textStatus}\n----\n${user.firstName} @${user.username}`;
     await this.bot.telegram.sendMessage(admin, text).catch((e) => {
       console.log(e);
     });
@@ -73,7 +73,7 @@ export class BotManagerNotificationService {
 
   async lastNotification(user: UserDocument, textStatus: string) {
     const admin = this.config.get<number>('MANAGER_GROUP')!;
-    const text = `${textStatus}\n----\n${user.lastName}`;
+    const text = `${textStatus}\n----\n${user.firstName} @${user.username}`;
     await this.bot.telegram.sendMessage(admin, text).catch((e) => {
       console.log(e);
     });

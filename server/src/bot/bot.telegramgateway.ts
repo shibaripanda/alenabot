@@ -52,9 +52,8 @@ export class TelegramGateway {
 
   @Start()
   async start(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
-    console.log('Your ID:', ctx.from.id);
-    console.log(ctx.user);
     console.log(ctx.app);
+    console.log(ctx.user);
     await ctx.deleteMessage();
     await this.botService.startBotMessage(ctx.from.id, ctx.user, ctx.app);
   }
@@ -179,7 +178,7 @@ export class TelegramGateway {
 
     if (
       text.startsWith('sethellotext ') &&
-      ctx.from?.id === this.config.get<number>('SUPERADMIN')!
+      ctx.from?.id === Number(this.config.get<number>('SUPERADMIN')!)
     ) {
       const helloText = text.replace('sethellotext ', '').trim();
       await this.appService.setHelloText(helloText);
@@ -199,7 +198,7 @@ export class TelegramGateway {
       caption == 'sethellophoto' &&
       photos &&
       photos.length > 0 &&
-      ctx.from?.id === this.config.get<number>('SUPERADMIN')!
+      ctx.from?.id === Number(this.config.get<number>('SUPERADMIN')!)
     ) {
       const largestPhoto = photos[photos.length - 1];
       const fileId = largestPhoto.file_id;

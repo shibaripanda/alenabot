@@ -5,6 +5,7 @@ import { UserService } from 'src/user/user.service';
 import { UserDocument } from 'src/user/user.schema';
 import { AppService } from 'src/app/app.service';
 import { AppDocument } from 'src/app/app.schema';
+import { ConfigService } from '@nestjs/config';
 
 export interface ContextWithUser extends Context {
   user?: UserDocument;
@@ -20,13 +21,29 @@ export const accessControlMiddleware = (): MiddlewareFn<ContextWithUser> => {
     const from = ctx.from;
     if (!from) return;
 
+    const config = moduleRef.get(ConfigService, { strict: false });
+
+    console.log(from);
+
     const userService = moduleRef.get(UserService, { strict: false });
     const userDoc = await userService.createOrUpdateUser(from);
     if (!userDoc) return;
 
     const appService = moduleRef.get(AppService, { strict: false });
     const appDoc = await appService.getAppSettings();
-    if (!appDoc || !appDoc.startMessagePhoto) return;
+    if (!appDoc || !appDoc.startMessagePhoto) {
+      if (!appDoc) {
+        console.log('Нет настроек приложения');
+        return;
+      }
+      if (!appDoc.startMessagePhoto)
+        console.log('Нет стартового фото sethellophoto, sethellotext');
+      console.log(Number(config.get<number>('SUPERADMIN')!));
+      if (from.id === Number(config.get<number>('SUPERADMIN')!)) {
+        return next();
+      }
+      return;
+    }
 
     ctx.user = userDoc;
     ctx.app = appDoc;
