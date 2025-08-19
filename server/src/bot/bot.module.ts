@@ -9,7 +9,7 @@ import { BotMessageService } from './bot.message';
 import { ModuleRef } from '@nestjs/core';
 import { accessControlMiddleware } from './access-control.middleware';
 import { BotManagerNotificationService } from './bot.managerNotification';
-import { BotUserNotificationService } from './bot.userNotification copy';
+import { BotUserNotificationService } from './bot.userNotification';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ControlSub } from './controlSub.service';
 

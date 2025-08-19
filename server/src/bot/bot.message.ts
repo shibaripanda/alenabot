@@ -111,6 +111,11 @@ export class BotMessageService {
         user.lastMessageId,
         app.startMessagePhoto,
       );
+      await this.deleteOrEditOldMessage(
+        telegramId,
+        user.lastInvoiceMessageId,
+        app.startMessagePhoto,
+      );
       user.lastMessageId = res.message_id;
       await user.save();
 
@@ -173,6 +178,11 @@ export class BotMessageService {
           await this.deleteOrEditOldMessage(
             telegramId,
             user.lastMessageId,
+            app.startMessagePhoto,
+          );
+          await this.deleteOrEditOldMessage(
+            telegramId,
+            user.lastInvoiceMessageId,
             app.startMessagePhoto,
           );
         }

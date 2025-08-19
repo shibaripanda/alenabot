@@ -235,9 +235,10 @@ export class BotService {
     user: UserDocument,
     app: AppDocument,
   ) {
-    const text = 'Из какой ты страны?';
+    const text = 'Из какой Вы страны?';
     const buttons = [
       ...this.priceList
+        .filter((prod) => !prod.new)
         .filter((l) => l.duration === long)
         .map((prod) => [
           {
@@ -299,7 +300,7 @@ export class BotService {
   }
 
   async listProducts(telegramId: number, user: UserDocument, app: AppDocument) {
-    const text = 'Из какой вы страны?';
+    const text = 'Из какой Вы страны?';
     const buttons = [
       ...this.priceList
         .filter((prod) => prod.new)
@@ -331,7 +332,6 @@ export class BotService {
     app: AppDocument,
   ) {
     const photo = app.startMessagePhoto;
-    console.log(photo);
     const text = app.helloText;
     const buttons = [
       [
@@ -340,13 +340,13 @@ export class BotService {
           callback_data: 'takeChannel',
         },
       ],
-      [
-        {
-          text: 'Jumping Universe (для теста)',
-          callback_data: 'takeChannelLong',
-        },
-      ],
-      [{ text: 'Обучение online', callback_data: 'takeStudy' }],
+      // [
+      //   {
+      //     text: 'Jumping Universe (для теста)',
+      //     callback_data: 'takeChannelLong',
+      //   },
+      // ],
+      // [{ text: 'Обучение online', callback_data: 'takeStudy' }],
     ];
 
     if (photo) {
@@ -415,21 +415,24 @@ export class BotService {
     });
     const res = await this.botMessageService.sendMessageToUserTextButtons(
       user.telegramId,
-      `🎉 Ваше персональное приглашение в канал (активно: ${time} час)\n\n/start`,
-      [[{ text: 'Войти ✅', url: inviteLink.invite_link }]],
+      `🎉 Ваше персональное приглашение в канал\n(активно: ${time} час)`,
+      [
+        [{ text: 'Войти ✅', url: inviteLink.invite_link }],
+        [{ text: 'Назад', callback_data: 'backToMainMenu' }],
+      ],
       user,
       app,
     );
     if (res) {
       await this.botManagerNotificationService.simpleNotification(
         user,
-        `✅\nПолучил ссылку\n${inviteLink.invite_link}`,
+        `✅\nПолучил ссылку для входа`,
       );
       return;
     }
     await this.botManagerNotificationService.simpleNotification(
       user,
-      `⚠️\nНе получил ссылку!\n${inviteLink.invite_link}`,
+      `⚠️\nНе получил ссылку!\n${inviteLink.invite_link}, отправте в личное сообщение`,
     );
   }
 

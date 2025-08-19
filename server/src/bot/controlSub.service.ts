@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AppService } from 'src/app/app.service';
 import { UserService } from 'src/user/user.service';
+import { BotService } from './bot.service';
 
 @Injectable()
 export class ControlSub {
@@ -10,6 +11,7 @@ export class ControlSub {
     private readonly userService: UserService,
     private readonly appService: AppService,
     private readonly config: ConfigService,
+    private readonly botService: BotService,
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
@@ -32,9 +34,15 @@ export class ControlSub {
 
       if (
         diffMs <=
-          this.config.get<number>('TIME_3DAYS_CONTROL')! * 60 * 60 * 1000 &&
+          Number(this.config.get<number>('TIME_3DAYS_CONTROL')!) *
+            60 *
+            60 *
+            1000 &&
         diffMs >
-          this.config.get<number>('TIME_1DAY_CONTROL')! * 60 * 60 * 1000 &&
+          Number(this.config.get<number>('TIME_1DAY_CONTROL')!) *
+            60 *
+            60 *
+            1000 &&
         !user.notified72h
       ) {
         console.log('3 day');
@@ -45,7 +53,10 @@ export class ControlSub {
 
       if (
         diffMs <=
-          this.config.get<number>('TIME_1DAY_CONTROL')! * 60 * 60 * 1000 &&
+          Number(this.config.get<number>('TIME_1DAY_CONTROL')!) *
+            60 *
+            60 *
+            1000 &&
         diffMs > 0 &&
         !user.notified24h
       ) {
@@ -57,12 +68,15 @@ export class ControlSub {
 
       if (diffMs <= 0) {
         console.log('delete');
-        await this.userService.controlUserForDelete(user);
+        const res = await this.userService.controlUserForDelete(user);
         user.status = 'new';
         user.notified72h = false;
         user.notified24h = false;
+        if (res) user.isSubscribed = false;
+        await this.botService.startBotMessage(user.telegramId, user, app);
         await user.save();
       }
+      console.log(user);
     }
   }
 }

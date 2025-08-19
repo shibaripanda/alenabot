@@ -52,8 +52,8 @@ export class TelegramGateway {
 
   @Start()
   async start(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
-    console.log(ctx.app);
-    console.log(ctx.user);
+    // console.log(ctx.app);
+    // console.log(ctx.user);
     await ctx.deleteMessage();
     await this.botService.startBotMessage(ctx.from.id, ctx.user, ctx.app);
   }
@@ -68,10 +68,10 @@ export class TelegramGateway {
   @Action('takeChannel')
   async takeChannel(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
     console.log('takeChannel');
-    if (ctx.user.isSubscribed) {
+    if (ctx.user.isSubscribed || ctx.user.status === 'old') {
       await this.botService.listProductsForOldUsers(
         ctx.from.id,
-        'Из какой вы страны?',
+        'Продление подписки Jumping Universe',
         ctx.user,
         ctx.app,
       );

@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { User, UserDocument } from './user.schema';
 import { User as TelegramUser } from 'telegraf/typings/core/types/typegram';
 import { BotService } from 'src/bot/bot.service';
-import { BotUserNotificationService } from 'src/bot/bot.userNotification copy';
+import { BotUserNotificationService } from 'src/bot/bot.userNotification';
 import { AppDocument } from 'src/app/app.schema';
 import { BotManagerNotificationService } from 'src/bot/bot.managerNotification';
 import { TelegramService } from './telegram.service';
@@ -20,7 +20,8 @@ function addMonths(date: Date, months: number): Date {
     result.setDate(0); // 0-й день месяца = последний день предыдущего месяца
   }
 
-  return result;
+  // return result;
+  return new Date(Date.now() + 5 * 60 * 1000);
 }
 
 @Injectable()
@@ -36,8 +37,15 @@ export class UserService {
     console.log('UserService initialized');
   }
 
+  async onModuleInit() {
+    await this.userModel.deleteMany({});
+    console.log('exist users', await this.userModel.find({}));
+  }
+
   async checkPayment(telegramId: number): Promise<boolean> {
-    const user = await this.userModel.findOne({ telegramId }).exec();
+    const user = await this.userModel
+      .findOneAndUpdate({ telegramId }, { isSubscribed: true })
+      .exec();
     if (!user) {
       return false;
     }
@@ -61,11 +69,11 @@ export class UserService {
     const user = await this.getUserByTelegramId(telegramId);
     if (!user) return false;
     const newOrder = { total_amount, service };
-    // const now = new Date();
-    // const exTime = addMonths(now, long);
+    const now = new Date();
+    const exTime = addMonths(now, long);
     user.payments.push(newOrder);
-    // user.subscriptionExpiresAt = exTime;
-    user.subscriptionExpiresAt = new Date(Date.now() + 600000);
+    user.subscriptionExpiresAt = exTime;
+    // user.subscriptionExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
     user.notified24h = false;
     user.notified72h = false;
     user.status = 'old';
@@ -127,15 +135,15 @@ export class UserService {
     const res = await this.botService.removeAndUnbanUser(user.telegramId);
     let text: string = '';
     if (!res) {
+      user.isSubscribed = true;
       text = 'Пользователь не удален из канала, по ошибке\n';
     }
     const statusUser = await this.botService.isUserActive(user.telegramId);
-    if (statusUser) {
-      text = text + 'Бот активен';
-    } else {
+    if (!statusUser) {
       text = text + 'Бот отключен пользователем';
     }
     await this.botManagerNotificationService.deleteUserNotification(user, text);
+    return res;
   }
 
   async createOrUpdateUser(user: TelegramUser): Promise<UserDocument | null> {
@@ -155,6 +163,7 @@ export class UserService {
       username: user.username ?? '',
       firstName: user.first_name,
       lastName: user.last_name ?? '',
+      status: 'new',
     });
     await this.botManagerNotificationService.newUserNotification(created);
     return created.save();

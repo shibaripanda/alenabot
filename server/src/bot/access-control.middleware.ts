@@ -23,7 +23,7 @@ export const accessControlMiddleware = (): MiddlewareFn<ContextWithUser> => {
 
     const config = moduleRef.get(ConfigService, { strict: false });
 
-    console.log(from);
+    // console.log(from);
 
     const userService = moduleRef.get(UserService, { strict: false });
     const userDoc = await userService.createOrUpdateUser(from);
@@ -38,7 +38,6 @@ export const accessControlMiddleware = (): MiddlewareFn<ContextWithUser> => {
       }
       if (!appDoc.startMessagePhoto)
         console.log('Нет стартового фото sethellophoto, sethellotext');
-      console.log(Number(config.get<number>('SUPERADMIN')!));
       if (from.id === Number(config.get<number>('SUPERADMIN')!)) {
         return next();
       }
