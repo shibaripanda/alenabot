@@ -7,15 +7,28 @@ import { BotService } from 'src/bot/bot.service';
 import { BotUserNotificationService } from 'src/bot/bot.userNotification';
 import { AppDocument } from 'src/app/app.schema';
 import { BotManagerNotificationService } from 'src/bot/bot.managerNotification';
-import { TelegramService } from './telegram.service';
+// import { TelegramService } from './telegram.service';
 import { ConfigService } from '@nestjs/config';
+
+// function addMonths(date: Date, months: number): Date {
+//   const result = new Date(date);
+//   result.setMonth(result.getMonth() + months);
+
+//   // Если при добавлении месяцев день "перепрыгнул" в следующий месяц (например, 31 марта + 1 месяц = 31 апреля → 1 мая),
+//   // то подкорректируем, чтобы вернуть последний день нужного месяца:
+//   if (result.getDate() !== date.getDate()) {
+//     result.setDate(0); // 0-й день месяца = последний день предыдущего месяца
+//   }
+
+//   // return result;
+//   return new Date(Date.now() + 5 * 60 * 1000);
+// }
 
 function addMonths(date: Date, months: number): Date {
   const result = new Date(date);
   result.setMonth(result.getMonth() + months);
 
-  // Если при добавлении месяцев день "перепрыгнул" в следующий месяц (например, 31 марта + 1 месяц = 31 апреля → 1 мая),
-  // то подкорректируем, чтобы вернуть последний день нужного месяца:
+  // Если день "перепрыгнул" в следующий месяц (например, 31 марта + 1 месяц = 31 апреля → 1 мая)
   if (result.getDate() !== date.getDate()) {
     result.setDate(0); // 0-й день месяца = последний день предыдущего месяца
   }
@@ -31,7 +44,7 @@ export class UserService {
     private botService: BotService,
     private botUserNotificationService: BotUserNotificationService,
     private botManagerNotificationService: BotManagerNotificationService,
-    private telegramService: TelegramService,
+    // private telegramService: TelegramService,
     private readonly config: ConfigService,
   ) {
     console.log('UserService initialized');
@@ -43,6 +56,17 @@ export class UserService {
   }
 
   async checkPayment(telegramId: number): Promise<boolean> {
+    const excludedIds = [
+      this.config.get<string>('BOT_ID'),
+      this.config.get<string>('SUPERADMIN'),
+    ]
+      .filter(Boolean) // убираем undefined
+      .map(Number); // приводим к числу
+
+    if (excludedIds.includes(telegramId)) {
+      return true;
+    }
+    // const user = await this.userModel.findOne({ telegramId }).exec();
     const user = await this.userModel
       .findOneAndUpdate({ telegramId }, { isSubscribed: true })
       .exec();
@@ -72,20 +96,37 @@ export class UserService {
     const now = new Date();
     const exTime = addMonths(now, long);
     user.payments.push(newOrder);
-    user.subscriptionExpiresAt = exTime;
+    // user.subscriptionExpiresAt = exTime;
+    if (!user.subscriptionExpiresAt || user.subscriptionExpiresAt <= now) {
+      user.subscriptionExpiresAt = exTime;
+    } else {
+      // Если подписка активна — добавляем месяцы к текущему сроку
+      user.subscriptionExpiresAt = addMonths(user.subscriptionExpiresAt, long);
+    }
     // user.subscriptionExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
     user.notified24h = false;
     user.notified72h = false;
     user.status = 'old';
     await user.save();
     await this.botManagerNotificationService.newPaymentNotification(user);
-    await this.botService.sendOneTimeInvite(user);
     console.log('payment');
+    if (user.isSubscribed) {
+      await this.botService.sendLongUp(user);
+      return;
+    }
+    await this.botService.sendOneTimeInvite(user);
     // const res = await this.telegramService.getChannelUsers();
     // console.log(res);
   }
 
   async getUsersControl(): Promise<UserDocument[]> {
+    const excludedIds = [
+      this.config.get<string>('BOT_ID'),
+      this.config.get<string>('SUPERADMIN'),
+    ]
+      .filter(Boolean) // убираем undefined
+      .map(Number); // приводим к числу
+    console.log(excludedIds);
     const now = new Date();
     return await this.userModel.find({
       subscriptionExpiresAt: {
@@ -95,6 +136,9 @@ export class UserService {
         ),
       },
       status: { $nin: ['free', 'new'] },
+      telegramId: {
+        $nin: excludedIds,
+      },
     });
   }
 

@@ -235,7 +235,7 @@ export class BotService {
     user: UserDocument,
     app: AppDocument,
   ) {
-    const text = 'Из какой Вы страны?';
+    const text = '<b>Из какой Вы страны?</b>';
     const buttons = [
       ...this.priceList
         .filter((prod) => !prod.new)
@@ -300,7 +300,7 @@ export class BotService {
   }
 
   async listProducts(telegramId: number, user: UserDocument, app: AppDocument) {
-    const text = 'Из какой Вы страны?';
+    const text = '<b>Из какой Вы страны?</b>';
     const buttons = [
       ...this.priceList
         .filter((prod) => prod.new)
@@ -332,7 +332,14 @@ export class BotService {
     app: AppDocument,
   ) {
     const photo = app.startMessagePhoto;
-    const text = app.helloText;
+    let text = `<b>${app.helloText}</b>`;
+    const now = new Date();
+    if (user.subscriptionExpiresAt && user.subscriptionExpiresAt >= now) {
+      text =
+        text +
+        '\nВы подписаны до: ' +
+        user.subscriptionExpiresAt.toLocaleDateString();
+    }
     const buttons = [
       [
         {
@@ -434,6 +441,28 @@ export class BotService {
       user,
       `⚠️\nНе получил ссылку!\n${inviteLink.invite_link}, отправте в личное сообщение`,
     );
+  }
+
+  async sendLongUp(user: UserDocument) {
+    const app = await this.appService.getAppSettings();
+    if (!app) {
+      console.log('Ошибка отправки ссылки');
+      return;
+    }
+    const res = await this.botMessageService.sendMessageToUserTextButtons(
+      user.telegramId,
+      `🎉 Вы продлили подписку!`,
+      [[{ text: 'Назад', callback_data: 'backToMainMenu' }]],
+      user,
+      app,
+    );
+    if (res) {
+      await this.botManagerNotificationService.simpleNotification(
+        user,
+        `✅\nПродлил подписку`,
+      );
+      return;
+    }
   }
 
   async removeAndUnbanUser(telegramId: number) {

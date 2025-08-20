@@ -30,10 +30,10 @@ export class TelegramGateway {
     private readonly config: ConfigService,
     private userService: UserService,
   ) {
-    // this.bot.use(async (ctx, next) => {
-    //   console.log('Update received:', JSON.stringify(ctx.update, null, 2));
-    //   await next();
-    // });
+    this.bot.use(async (ctx, next) => {
+      console.log('Update received:', JSON.stringify(ctx.update, null, 2));
+      await next();
+    });
   }
 
   // @On('chat_member')
@@ -69,9 +69,20 @@ export class TelegramGateway {
   async takeChannel(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
     console.log('takeChannel');
     if (ctx.user.isSubscribed || ctx.user.status === 'old') {
+      let text = `<b>Продление подписки Jumping Universe</b>`;
+      const now = new Date();
+      if (
+        ctx.user.subscriptionExpiresAt &&
+        ctx.user.subscriptionExpiresAt >= now
+      ) {
+        text =
+          text +
+          '\nВы подписаны до: ' +
+          ctx.user.subscriptionExpiresAt.toLocaleDateString();
+      }
       await this.botService.listProductsForOldUsers(
         ctx.from.id,
-        'Продление подписки Jumping Universe',
+        text,
         ctx.user,
         ctx.app,
       );
@@ -84,9 +95,20 @@ export class TelegramGateway {
   @Action('takeChannelLong')
   async takeChannelLong(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
     console.log('takeChannelLong');
+    let text = '<b>Продление подписки Jumping Universe</b>';
+    const now = new Date();
+    if (
+      ctx.user.subscriptionExpiresAt &&
+      ctx.user.subscriptionExpiresAt >= now
+    ) {
+      text =
+        text +
+        '\nВы подписаны до: ' +
+        ctx.user.subscriptionExpiresAt.toLocaleDateString();
+    }
     await this.botService.listProductsForOldUsers(
       ctx.from.id,
-      'Продление подписки Jumping Universe',
+      text,
       ctx.user,
       ctx.app,
     );

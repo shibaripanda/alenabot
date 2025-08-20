@@ -19,16 +19,17 @@ export class TelegramService implements OnModuleInit {
   private readonly logger = new Logger(TelegramService.name);
   private client: TelegramClient;
 
-  private userService: UserService;
-  private botManagerNotificationService: BotManagerNotificationService;
-  private botService: BotService;
-
   private readonly apiId: number;
   private readonly apiHash: string;
   private readonly stringSession: string;
   private readonly channelId: number;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private userService: UserService,
+    private botManagerNotificationService: BotManagerNotificationService,
+    private botService: BotService,
+  ) {
     this.apiId = Number(this.config.get<number>('API_ID')!);
     this.apiHash = this.config.get<string>('API_HASH')!;
     this.stringSession = this.config.get<string>('TELEGRAM_STRING_SESSION')!;
@@ -65,7 +66,8 @@ export class TelegramService implements OnModuleInit {
     this.logger.log('Telegram client инициализирован');
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  // @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_MINUTE)
   async getUsersTelegramIdsAndControl(): Promise<void> {
     if (!this.client) throw new Error('Telegram client не инициализирован');
     console.log('Cron контроль юзеров');
@@ -100,6 +102,7 @@ export class TelegramService implements OnModuleInit {
       this.logger.log(
         `Обрабатываем ${allMembers.length} пользователей из канала (offset=${offset})`,
       );
+
       await this.checkChannelUsers(allMembers);
 
       offset += participants.users.length;
@@ -114,13 +117,13 @@ export class TelegramService implements OnModuleInit {
       try {
         const hasPayment = await this.userService.checkPayment(user.telegramId);
         if (!hasPayment) {
-          this.logger.log(
-            `Удаляем пользователя ${user.telegramId} (${user.firstName})`,
-          );
-          await this.botManagerNotificationService.extraSimpleNotification(
-            `Удаляю\n${user.firstName} | ${user.telegramId} | ${user.username ? '@' + user.username : ''}`,
-          );
-          const res = await this.botService.removeAndUnbanUser(user.telegramId); // твоя заглушка для удаления
+          // this.logger.log(
+          //   `Удаляем пользователя ${user.telegramId} (${user.firstName})`,
+          // );
+          // await this.botManagerNotificationService.extraSimpleNotification(
+          //   `Удаляю\n${user.firstName} | ${user.telegramId} | ${user.username ? '@' + user.username : ''}`,
+          // );
+          const res = await this.botService.removeAndUnbanUser(user.telegramId);
           if (!res) {
             await this.botManagerNotificationService.extraSimpleNotification(
               `Не смог удалить\n${user.firstName} | ${user.telegramId} | ${user.username ? '@' + user.username : ''}`,
