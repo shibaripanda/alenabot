@@ -67,7 +67,7 @@ export class TelegramService implements OnModuleInit {
   }
 
   // @Cron(CronExpression.EVERY_HOUR)
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   async getUsersTelegramIdsAndControl(): Promise<void> {
     if (!this.client) throw new Error('Telegram client не инициализирован');
     console.log('Cron контроль юзеров');

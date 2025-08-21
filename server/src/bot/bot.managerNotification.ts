@@ -13,41 +13,8 @@ export class BotManagerNotificationService {
     console.log('BotManagerNotificationService initialized');
   }
 
-  async newUserNotification(user: UserDocument) {
+  async sendNot(text: string) {
     const admin = this.config.get<number>('MANAGER_GROUP')!;
-    const text = `Новый пользователь в боте\n@${user.username}\n${user.firstName}\n${user.lastName}`;
-    await this.bot.telegram.sendMessage(admin, text).catch((e) => {
-      console.log(e);
-    });
-  }
-
-  async extraSimpleNotification(textStatus: string) {
-    const admin = this.config.get<number>('MANAGER_GROUP')!;
-    const text = `Уведомление\n==================\n${textStatus}`;
-    await this.bot.telegram.sendMessage(admin, text).catch((e) => {
-      console.log(e);
-    });
-  }
-
-  async simpleNotification(user: UserDocument, textStatus: string) {
-    const admin = this.config.get<number>('MANAGER_GROUP')!;
-    const text = `Уведомление\n@${user.username} | ${user.firstName} | ${user.lastName}\n==================\n${textStatus}`;
-    await this.bot.telegram.sendMessage(admin, text).catch((e) => {
-      console.log(e);
-    });
-  }
-
-  async newPaymentNotification(user: UserDocument) {
-    const admin = this.config.get<number>('MANAGER_GROUP')!;
-    const payment = user.payments[user.payments.length - 1];
-    const sumUserPayments =
-      user.payments.reduce((acc, p) => acc + p.total_amount, 0) / 100;
-    const text = `💰💰💰💰💰💰💰💰💰\n@${user.username} | ${user.firstName} | ${user.lastName}\n${payment.service}\n<b>Оплата: ${payment.total_amount / 100}</b>\nСумма по клиенту: ${sumUserPayments}\n🤑🤑🤑🤑🤑🤑🤑🤑🤑`;
-    await this.bot.telegram
-      .sendMessage(admin, '💰', { parse_mode: 'HTML' })
-      .catch((e) => {
-        console.log(e);
-      });
     await this.bot.telegram
       .sendMessage(admin, text, { parse_mode: 'HTML' })
       .catch((e) => {
@@ -55,35 +22,53 @@ export class BotManagerNotificationService {
       });
   }
 
+  async newUserNotification(user: UserDocument) {
+    const text = `✴️ <b>Новый пользователь в боте</b>\n==================\n@${user.username}\n${user.firstName}\n${user.lastName}`;
+    await this.sendNot(text);
+  }
+
+  async extraSimpleNotification(textStatus: string) {
+    const text = `ℹ️ <b>Уведомление</b>\n==================\n${textStatus}`;
+    await this.sendNot(text);
+  }
+
+  async simpleNotification(user: UserDocument, textStatus: string) {
+    const text = `ℹ️ <b>Уведомление</b>\n==================\n@${user.username} | ${user.firstName} | ${user.lastName}\n${textStatus}`;
+    await this.sendNot(text);
+  }
+
+  async newPaymentNotification(user: UserDocument) {
+    const payment = user.payments[user.payments.length - 1];
+    const sumUserPayments =
+      user.payments.reduce((acc, p) => acc + p.total_amount, 0) / 100;
+    const text = `💰 <b>Получен платеж за вход</b>\n==================\n@${user.username} | ${user.firstName} | ${user.lastName}\n${payment.service}\n<b>Оплата: ${payment.total_amount / 100}</b>\nСумма по клиенту: ${sumUserPayments}\n🤑🤑🤑🤑🤑🤑🤑🤑🤑`;
+    await this.sendNot('💰');
+    await this.sendNot(text);
+  }
+
   async treeDaysNotification(user: UserDocument, textStatus: string) {
-    const admin = this.config.get<number>('MANAGER_GROUP')!;
-    const text = `${textStatus}\n----\n${user.firstName} @${user.username}`;
-    await this.bot.telegram.sendMessage(admin, text).catch((e) => {
-      console.log(e);
-    });
+    const text = `3️⃣ ${textStatus}\n----\n${user.firstName} @${user.username}`;
+    await this.sendNot(text);
   }
 
   async newLongPaymentNotification(user: UserDocument) {
-    const admin = this.config.get<number>('MANAGER_GROUP')!;
-    const text = `Новый пользователь в боте\n@${user.username}\n${user.firstName}\n${user.lastName}`;
-    await this.bot.telegram.sendMessage(admin, text).catch((e) => {
-      console.log(e);
-    });
+    const payment = user.payments[user.payments.length - 1];
+    const sumUserPayments =
+      user.payments.reduce((acc, p) => acc + p.total_amount, 0) / 100;
+    const text = `💰 <b>Получен платеж за продление</b>\n==================\n@${user.username} | ${user.firstName} | ${user.lastName}\n${payment.service}\n<b>Оплата: ${payment.total_amount / 100}</b>\nСумма по клиенту: ${sumUserPayments}\n🤑🤑🤑🤑🤑🤑🤑🤑🤑`;
+    await this.sendNot('💰');
+    await this.sendNot(text);
   }
 
   async lastNotification(user: UserDocument, textStatus: string) {
-    const admin = this.config.get<number>('MANAGER_GROUP')!;
-    const text = `${textStatus}\n----\n${user.firstName} @${user.username}`;
-    await this.bot.telegram.sendMessage(admin, text).catch((e) => {
-      console.log(e);
-    });
+    const text = `1️⃣ ${textStatus}\n----\n${user.firstName} @${user.username}`;
+    await this.sendNot(text);
   }
 
   async deleteUserNotification(user: UserDocument, textStatus: string) {
-    const admin = this.config.get<number>('MANAGER_GROUP')!;
-    const text = `Пользователь удален с канала\n${textStatus}\n@${user.username}\n${user.firstName}\n${user.lastName}`;
-    await this.bot.telegram.sendMessage(admin, text).catch((e) => {
-      console.log(e);
-    });
+    const sumUserPayments =
+      user.payments.reduce((acc, p) => acc + p.total_amount, 0) / 100;
+    const text = `🚪 <b>Пользователь удален с канала</b>\n==================\n${textStatus}\n@${user.username}\n${user.firstName}\n${user.lastName}\nСумма по клиенту: ${sumUserPayments}`;
+    await this.sendNot(text);
   }
 }

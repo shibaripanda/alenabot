@@ -30,25 +30,11 @@ export class TelegramGateway {
     private readonly config: ConfigService,
     private userService: UserService,
   ) {
-    this.bot.use(async (ctx, next) => {
-      console.log('Update received:', JSON.stringify(ctx.update, null, 2));
-      await next();
-    });
+    // this.bot.use(async (ctx, next) => {
+    //   console.log('Update received:', JSON.stringify(ctx.update, null, 2));
+    //   await next();
+    // });
   }
-
-  // @On('chat_member')
-  // onChatMember(@Ctx() ctx: Context) {
-  //   const update = ctx.update as UpdateTelegraf.ChatMemberUpdate;
-  //   const member = update.chat_member;
-  //   console.log(member);
-
-  // const user = await this.userService.getUserByTelegramId(userId);
-
-  // if (!user || user.subscriptionExpiresAt < new Date()) {
-  //   await ctx.telegram.banChatMember(ctx.chat.id, userId);
-  //   await ctx.telegram.unbanChatMember(ctx.chat.id, userId); // чтобы мог оплатить
-  // }
-  // }
 
   @Start()
   async start(@Ctx() ctx: UserTelegrafContextWithUserMongo) {

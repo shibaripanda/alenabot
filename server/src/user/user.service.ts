@@ -51,7 +51,10 @@ export class UserService {
   }
 
   async onModuleInit() {
-    await this.userModel.deleteMany({});
+    const test = this.config.get<string>('MODE')!;
+    if (test === 'test') {
+      await this.userModel.deleteMany({});
+    }
     console.log('exist users', await this.userModel.find({}));
   }
 
@@ -59,6 +62,7 @@ export class UserService {
     const excludedIds = [
       this.config.get<string>('BOT_ID'),
       this.config.get<string>('SUPERADMIN'),
+      this.config.get<string>('ADMIN_USER_API'),
     ]
       .filter(Boolean) // убираем undefined
       .map(Number); // приводим к числу
@@ -97,32 +101,32 @@ export class UserService {
     const exTime = addMonths(now, long);
     user.payments.push(newOrder);
     // user.subscriptionExpiresAt = exTime;
-    if (!user.subscriptionExpiresAt || user.subscriptionExpiresAt <= now) {
-      user.subscriptionExpiresAt = exTime;
-    } else {
-      // Если подписка активна — добавляем месяцы к текущему сроку
-      user.subscriptionExpiresAt = addMonths(user.subscriptionExpiresAt, long);
-    }
-    // user.subscriptionExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
     user.notified24h = false;
     user.notified72h = false;
     user.status = 'old';
-    await user.save();
-    await this.botManagerNotificationService.newPaymentNotification(user);
-    console.log('payment');
-    if (user.isSubscribed) {
+    if (
+      !user.subscriptionExpiresAt ||
+      user.subscriptionExpiresAt <= now ||
+      !user.isSubscribed
+    ) {
+      user.subscriptionExpiresAt = exTime;
+      await user.save();
+      await this.botManagerNotificationService.newPaymentNotification(user);
+      await this.botService.sendOneTimeInvite(user);
+    } else {
+      user.subscriptionExpiresAt = addMonths(user.subscriptionExpiresAt, long);
+      await user.save();
+      await this.botManagerNotificationService.newLongPaymentNotification(user);
       await this.botService.sendLongUp(user);
-      return;
     }
-    await this.botService.sendOneTimeInvite(user);
-    // const res = await this.telegramService.getChannelUsers();
-    // console.log(res);
+    console.log('payment');
   }
 
   async getUsersControl(): Promise<UserDocument[]> {
     const excludedIds = [
       this.config.get<string>('BOT_ID'),
       this.config.get<string>('SUPERADMIN'),
+      this.config.get<string>('ADMIN_USER_API'),
     ]
       .filter(Boolean) // убираем undefined
       .map(Number); // приводим к числу
@@ -181,6 +185,9 @@ export class UserService {
     if (!res) {
       user.isSubscribed = true;
       text = 'Пользователь не удален из канала, по ошибке\n';
+    }
+    if (res) {
+      user.isSubscribed = false;
     }
     const statusUser = await this.botService.isUserActive(user.telegramId);
     if (!statusUser) {

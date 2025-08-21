@@ -64,7 +64,7 @@ export class BotMessageService {
         await user.save();
         await this.botManagerNotificationService.simpleNotification(
           user,
-          `Получил инвойс: ${service} ${price}`,
+          `Получил инвойс:\n${service}\n${price / 100}`,
         );
       })
       .catch((e) => {
