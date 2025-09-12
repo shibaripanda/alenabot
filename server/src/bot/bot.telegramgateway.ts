@@ -113,9 +113,28 @@ export class TelegramGateway {
       const message = update.message as Message.SuccessfulPaymentMessage;
       const payment = message.successful_payment;
 
-      await ctx.reply(
-        `Спасибо за оплату на сумму ${payment.total_amount / 100} ${payment.currency}!`,
+      console.log(payment);
+
+      const total_amount = payment.total_amount;
+      const payload = payment.invoice_payload.split('|');
+      const serviceName = this.botService.priceList.find(
+        (s) => s.id === payload[1],
       );
+      await this.userService.successfulPayment(
+        Number(payload[0]),
+        total_amount,
+        serviceName?.product + ' ' + serviceName?.description,
+        Number(payload[2]),
+      );
+
+      // await this.bot.telegram.answerPreCheckoutQuery(
+      //   update.pre_checkout_query.id,
+      //   true,
+      // );
+
+      // await ctx.reply(
+      //   `Спасибо за оплату на сумму ${payment.total_amount / 100} ${payment.currency}!`,
+      // );
     } else {
       console.warn('Update не содержит успешной оплаты');
     }
@@ -123,17 +142,17 @@ export class TelegramGateway {
 
   @On('pre_checkout_query')
   async onPreCheckoutQuery(@Ctx() ctx: Context) {
-    const update = ctx.update as UpdateTelegraf.PreCheckoutQueryUpdate;
-    console.log(update.pre_checkout_query);
-    console.log('pre_checkout_query');
-    const total_amount = update.pre_checkout_query.total_amount;
-    const payload = update.pre_checkout_query.invoice_payload.split('|');
-    await this.userService.successfulPayment(
-      Number(payload[0]),
-      total_amount,
-      payload[1],
-      Number(payload[2]),
-    );
+    // const update = ctx.update as UpdateTelegraf.PreCheckoutQueryUpdate;
+    // console.log(update.pre_checkout_query);
+    // console.log('pre_checkout_query');
+    // const total_amount = update.pre_checkout_query.total_amount;
+    // const payload = update.pre_checkout_query.invoice_payload.split('|');
+    // await this.userService.successfulPayment(
+    //   Number(payload[0]),
+    //   total_amount,
+    //   payload[1],
+    //   Number(payload[2]),
+    // );
     // await this.bot.telegram.answerPreCheckoutQuery(
     //   update.pre_checkout_query.id,
     //   true,
