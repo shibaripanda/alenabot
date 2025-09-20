@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectBot } from 'nestjs-telegraf';
+import { PaymentDocument } from 'src/user/payment.schema';
 import { UserDocument } from 'src/user/user.schema';
 import { Telegraf } from 'telegraf';
 
@@ -38,10 +39,10 @@ export class BotManagerNotificationService {
   }
 
   async newPaymentNotification(user: UserDocument) {
-    const payment = user.payments[user.payments.length - 1];
+    const payment: PaymentDocument = user.payments[user.payments.length - 1];
     const sumUserPayments =
       user.payments.reduce((acc, p) => acc + p.total_amount, 0) / 100;
-    const text = `💰 <b>Получен платеж за вход</b>\n==================\n@${user.username} | ${user.firstName} | ${user.lastName}\n${payment.service}\n<b>Оплата: ${payment.total_amount / 100}</b>\nСумма по клиенту: ${sumUserPayments}\n🤑🤑🤑🤑🤑🤑🤑🤑🤑`;
+    const text = `💰 <b>Получен платеж за вход</b>\n==================\n@${user.username} | ${user.firstName} | ${user.lastName}\n\n${payment.service}\n<b>Оплата: ${payment.total_amount / 100}</b>\nСумма по клиенту: ${sumUserPayments}\n\n🤑🤑🤑🤑🤑🤑🤑🤑🤑`;
     await this.sendNot('💰');
     await this.sendNot(text);
   }

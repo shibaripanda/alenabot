@@ -7,6 +7,7 @@ import { AppDocument } from 'src/app/app.schema';
 import { UserDocument } from 'src/user/user.schema';
 import { AppService } from 'src/app/app.service';
 import { BotManagerNotificationService } from './bot.managerNotification';
+// import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class BotService {
@@ -16,6 +17,7 @@ export class BotService {
     private botMessageService: BotMessageService,
     private botManagerNotificationService: BotManagerNotificationService,
     private appService: AppService,
+    // private userService: UserService,
   ) {
     console.log('BotService initialized');
   }
@@ -395,6 +397,47 @@ export class BotService {
     }
   }
 
+  async leftUserInGroup(user: UserDocument) {
+    await this.botManagerNotificationService.simpleNotification(
+      user,
+      'Пользователь вышел!',
+    );
+  }
+
+  async newUserInGroup(user: UserDocument) {
+    const excludedIds = [
+      this.config.get<string>('BOT_ID'),
+      this.config.get<string>('SUPERADMIN'),
+      this.config.get<string>('ADMIN_USER_API'),
+    ]
+      .filter(Boolean) // убираем undefined
+      .map(Number); // приводим к числу
+
+    if (excludedIds.includes(user.telegramId)) {
+      return;
+    }
+    if (user.status === 'free') {
+      await this.botManagerNotificationService.simpleNotification(
+        user,
+        'Бесплатный пользователь вошел!',
+      );
+      return;
+    }
+    const now = new Date();
+    if (!user.subscriptionExpiresAt || user.subscriptionExpiresAt < now) {
+      await this.removeAndUnbanUser(user.telegramId);
+      await this.botManagerNotificationService.simpleNotification(
+        user,
+        'Пользователь пытался войти, но был удалён!',
+      );
+      return;
+    }
+    await this.botManagerNotificationService.simpleNotification(
+      user,
+      'Пользователь успешно вошел!',
+    );
+  }
+
   async isUserMember(userId: number, chatId: string): Promise<boolean> {
     try {
       const res = await this.bot.telegram.getChatMember(chatId, userId);
@@ -412,9 +455,9 @@ export class BotService {
       console.log('Ошибка отправки ссылки');
       return;
     }
-    const chatId = this.config.get<string>('ID_CHANNEL')!;
-    const time = Number(this.config.get<string>('TIME_LIFE_LINK')!);
-    const expireDate = (Math.floor(Date.now() / 1000) + 3600) * time;
+    const chatId = this.config.get<string>('ID_CHAT')!;
+    // const time = Number(this.config.get<string>('TIME_LIFE_LINK')!);
+    const expireDate = Math.floor(user.subscriptionExpiresAt.getTime() / 1000); //(Math.floor(Date.now() / 1000) + 3600) * time;
     const inviteLink = await this.bot.telegram.createChatInviteLink(chatId, {
       member_limit: 1,
       expire_date: expireDate,
@@ -422,7 +465,7 @@ export class BotService {
     });
     const res = await this.botMessageService.sendMessageToUserTextButtons(
       user.telegramId,
-      `🎉 Ваше персональное приглашение в канал\n(активно: ${time} час)`,
+      `🎉 Ваше персональное приглашение`,
       [
         [{ text: 'Войти ✅', url: inviteLink.invite_link }],
         [{ text: 'Назад', callback_data: 'backToMainMenu' }],
@@ -467,7 +510,7 @@ export class BotService {
 
   async removeAndUnbanUser(telegramId: number) {
     try {
-      const chat = this.config.get<string>('ID_CHANNEL')!;
+      const chat = this.config.get<string>('ID_CHAT')!;
       await this.bot.telegram.banChatMember(chat, telegramId);
       await this.bot.telegram.unbanChatMember(chat, telegramId);
       return true;

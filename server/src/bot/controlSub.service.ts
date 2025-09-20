@@ -14,7 +14,7 @@ export class ControlSub {
     private readonly botService: BotService,
   ) {}
 
-  // @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_MINUTE)
   async checkSubscriptions() {
     console.log('cron');
     const now = new Date();

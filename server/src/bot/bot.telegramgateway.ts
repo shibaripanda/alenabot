@@ -44,6 +44,38 @@ export class TelegramGateway {
     await this.botService.startBotMessage(ctx.from.id, ctx.user, ctx.app);
   }
 
+  @On('new_chat_members')
+  async onNewChatMember(
+    @Ctx() ctx: NarrowedContext<Context, UpdateTelegraf.ChatMemberUpdate>,
+  ) {
+    const members = (ctx.message as unknown as Message.NewChatMembersMessage)
+      .new_chat_members;
+    for (const member of members) {
+      const user = await this.userService.createOrUpdateUser(member);
+      if (user) {
+        await this.botService.newUserInGroup(user);
+        console.log(
+          `Новый пользователь: ${member.first_name} (id: ${member.id})`,
+        );
+      }
+    }
+  }
+
+  @On('left_chat_member')
+  async onLeftChatMember(
+    @Ctx() ctx: NarrowedContext<Context, UpdateTelegraf.ChatMemberUpdate>,
+  ) {
+    const member = (ctx.message as unknown as Message.LeftChatMemberMessage)
+      .left_chat_member;
+    const user = await this.userService.createOrUpdateUser(member);
+    if (user) {
+      await this.botService.leftUserInGroup(user);
+      console.log(
+        `Пользователь вышел: ${member.first_name} (id: ${member.id})`,
+      );
+    }
+  }
+
   @Action('backToMainMenu')
   async backToMainMenu(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
     console.log('backToMainMenu');
@@ -125,16 +157,10 @@ export class TelegramGateway {
         total_amount,
         serviceName?.product + ' ' + serviceName?.description,
         Number(payload[2]),
+        payment.provider_payment_charge_id,
+        payment.telegram_payment_charge_id,
+        payment.order_info?.email ? payment.order_info?.email : '',
       );
-
-      // await this.bot.telegram.answerPreCheckoutQuery(
-      //   update.pre_checkout_query.id,
-      //   true,
-      // );
-
-      // await ctx.reply(
-      //   `Спасибо за оплату на сумму ${payment.total_amount / 100} ${payment.currency}!`,
-      // );
     } else {
       console.warn('Update не содержит успешной оплаты');
     }

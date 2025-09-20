@@ -93,10 +93,19 @@ export class UserService {
     total_amount: number,
     service: string,
     long: number,
+    provider_payment_charge_id: string,
+    telegram_payment_charge_id: string,
+    email: string,
   ) {
     const user = await this.getUserByTelegramId(telegramId);
     if (!user) return false;
-    const newOrder = { total_amount, service };
+    const newOrder = {
+      total_amount,
+      service,
+      provider_payment_charge_id,
+      telegram_payment_charge_id,
+      email,
+    };
     const now = new Date();
     const exTime = addMonths(now, long);
     user.payments.push(newOrder);

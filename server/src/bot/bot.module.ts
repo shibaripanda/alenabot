@@ -30,6 +30,7 @@ import { ControlSub } from './controlSub.service';
           'successful_payment',
           'chat_member',
           'my_chat_member',
+          'new_chat_members',
         ],
         middlewares: [
           (ctx, next) => {

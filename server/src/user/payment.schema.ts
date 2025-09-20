@@ -10,6 +10,15 @@ export class Payment {
 
   @Prop()
   service: string;
+
+  @Prop()
+  email: string;
+
+  @Prop()
+  telegram_payment_charge_id: string;
+
+  @Prop()
+  provider_payment_charge_id: string;
 }
 
 export const PaymentSchema = SchemaFactory.createForClass(Payment);
