@@ -26,46 +26,16 @@ export class BotMessageService {
     user: UserDocument,
     app: AppDocument,
   ) {
-    // const payloadObject = {
-    //   providerToken: this.config.get<string>('ALFA_TOKEN')!,
-    // };
-
-    // Преобразуем объект в строку JSON
-    // const payloadString = JSON.stringify(payloadObject);
     await this.bot.telegram
       .sendInvoice(telegramId, {
-        // chat_id, // Уникальный идентификатор целевого чата или имя пользователя целевого канала
         provider_token: this.config.get<string>('ALFA_TOKEN')!,
-        // photo_url: 'https://via.placeholder.com/400',
-        // photo_width: 200,
-        // photo_height: 200,
         start_parameter: 'get_access', // Уникальный параметр глубинных ссылок. Если оставить поле пустым, переадресованные копии отправленного сообщения будут иметь кнопку «Оплатить», позволяющую нескольким пользователям производить оплату непосредственно из пересылаемого сообщения, используя один и тот же счет. Если не пусто, перенаправленные копии отправленного сообщения будут иметь кнопку URL с глубокой ссылкой на бота (вместо кнопки оплаты) со значением, используемым в качестве начального параметра.
         title: service,
         description: description,
         currency: 'BYN',
         prices: [{ label: service, amount: price }],
-        //max_tip_amount: 1300,
-        //suggested_tip_amounts: [222, 444, 888],
-        payload: payload, //payloadString,
+        payload: payload,
         need_email: true,
-
-        // title: service,
-        // description: description,
-        // payload: payloadString,
-        // provider_token: this.config.get<string>('ALFA_TOKEN')!,
-        // currency: 'BYN',
-        // prices: [
-        //   {
-        //     label: service,
-        //     amount: price,
-        //   },
-        // ],
-        // provider_data: JSON.stringify({
-        //   providerToken: this.config.get<string>('ALFA_TOKEN')!,
-        // }),
-        // start_parameter: 'pay-service',
-        // send_email_to_provider: true,
-        // need_email: true,
       })
       .then(async (res) => {
         if (user.lastInvoiceMessageId) {
@@ -79,7 +49,7 @@ export class BotMessageService {
         await user.save();
         await this.botManagerNotificationService.simpleNotification(
           user,
-          `Получил инвойс:\n${service}\n${price / 100}`,
+          `Выставлен счет: ${service} ${description}\n Сумма: ${price / 100}`,
         );
       })
       .catch((e) => {

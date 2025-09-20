@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectBot } from 'nestjs-telegraf';
-import { PaymentDocument } from 'src/user/payment.schema';
+import { Payment } from 'src/user/payment.schema';
 import { UserDocument } from 'src/user/user.schema';
 import { Telegraf } from 'telegraf';
 
@@ -23,53 +23,99 @@ export class BotManagerNotificationService {
       });
   }
 
+  escapeHtml(str: string) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  listUserData(user: UserDocument) {
+    const username = user.username
+      ? '@' + this.escapeHtml(user.username)
+      : 'нет юзернейма';
+    const name = user.firstName
+      ? this.escapeHtml(user.firstName)
+      : '' + user.lastName
+        ? this.escapeHtml(user.lastName)
+        : '';
+    return name + ' (' + username + ')';
+  }
+
+  listTotalForDelete(user: UserDocument) {
+    const sumUserPayments =
+      user.payments.reduce((acc, p) => acc + p.total_amount, 0) / 100;
+    const totalPayments = `Сумма по клиенту: ${sumUserPayments}`;
+    const countPayment = `<b>Всего платежей: ${user.payments.length}</b>`;
+
+    return totalPayments + '\n' + countPayment;
+  }
+
+  listLastPaymentAndTotal(user: UserDocument) {
+    const payment: Payment = user.payments[user.payments.length - 1];
+    const sumUserPayments =
+      user.payments.reduce((acc, p) => acc + p.total_amount, 0) / 100;
+    const totalPayments = `Сумма по клиенту: ${sumUserPayments}`;
+    const lastPayment = `<b>Оплата: ${payment.total_amount / 100}</b>`;
+    const countPayment = `<b>Всего платежей: ${user.payments.length}</b>`;
+
+    return (
+      lastPayment +
+      '\n\n' +
+      this.escapeHtml(payment.service) +
+      '\n' +
+      this.escapeHtml(payment.email) +
+      '\n<code>' +
+      this.escapeHtml(payment.provider_payment_charge_id) +
+      '</code>\n<code>' +
+      this.escapeHtml(payment.telegram_payment_charge_id) +
+      '</code>\n\n' +
+      totalPayments +
+      '\n' +
+      countPayment
+    );
+  }
+
   async newUserNotification(user: UserDocument) {
-    const text = `✴️ <b>Новый пользователь в боте</b>\n==================\n@${user.username}\n${user.firstName}\n${user.lastName}`;
+    const text = `✴️ <b>Новый пользователь в боте</b>\n\n${this.listUserData(user)}`;
     await this.sendNot(text);
   }
 
   async extraSimpleNotification(textStatus: string) {
-    const text = `ℹ️ <b>Уведомление</b>\n==================\n${textStatus}`;
+    const text = `ℹ️ <b>Уведомление</b>\n\n${textStatus}`;
     await this.sendNot(text);
   }
 
   async simpleNotification(user: UserDocument, textStatus: string) {
-    const text = `ℹ️ <b>Уведомление</b>\n==================\n@${user.username} | ${user.firstName} | ${user.lastName}\n${textStatus}`;
+    const text = `ℹ️ <b>Уведомление</b>\n\n${this.listUserData(user)}\n${textStatus}`;
     await this.sendNot(text);
   }
 
   async newPaymentNotification(user: UserDocument) {
-    const payment: PaymentDocument = user.payments[user.payments.length - 1];
-    const sumUserPayments =
-      user.payments.reduce((acc, p) => acc + p.total_amount, 0) / 100;
-    const text = `💰 <b>Получен платеж за вход</b>\n==================\n@${user.username} | ${user.firstName} | ${user.lastName}\n\n${payment.service}\n<b>Оплата: ${payment.total_amount / 100}</b>\nСумма по клиенту: ${sumUserPayments}\n\n🤑🤑🤑🤑🤑🤑🤑🤑🤑`;
+    const text = `💰 <b>Получен платеж за вход</b>\n\n${this.listUserData(user)}\n\n${this.listLastPaymentAndTotal(user)}\n\n🤑🤑🤑🤑🤑🤑🤑🤑🤑`;
     await this.sendNot('💰');
     await this.sendNot(text);
   }
 
   async treeDaysNotification(user: UserDocument, textStatus: string) {
-    const text = `3️⃣ ${textStatus}\n----\n${user.firstName} @${user.username}`;
+    const text = `3️⃣ ${textStatus}\n\n${this.listUserData(user)}`;
     await this.sendNot(text);
   }
 
   async newLongPaymentNotification(user: UserDocument) {
-    const payment = user.payments[user.payments.length - 1];
-    const sumUserPayments =
-      user.payments.reduce((acc, p) => acc + p.total_amount, 0) / 100;
-    const text = `💰 <b>Получен платеж за продление</b>\n==================\n@${user.username} | ${user.firstName} | ${user.lastName}\n${payment.service}\n<b>Оплата: ${payment.total_amount / 100}</b>\nСумма по клиенту: ${sumUserPayments}\n🤑🤑🤑🤑🤑🤑🤑🤑🤑`;
+    const text = `💰 <b>Получен платеж за продление</b>\n\n${this.listUserData(user)}\n\n${this.listLastPaymentAndTotal(user)}\n\n🤑🤑🤑🤑🤑🤑🤑🤑🤑`;
     await this.sendNot('💰');
     await this.sendNot(text);
   }
 
   async lastNotification(user: UserDocument, textStatus: string) {
-    const text = `1️⃣ ${textStatus}\n----\n${user.firstName} @${user.username}`;
+    const text = `1️⃣ ${textStatus}\n\n${this.listUserData(user)}`;
     await this.sendNot(text);
   }
 
   async deleteUserNotification(user: UserDocument, textStatus: string) {
-    const sumUserPayments =
-      user.payments.reduce((acc, p) => acc + p.total_amount, 0) / 100;
-    const text = `🚪 <b>Пользователь удален с канала</b>\n==================\n${textStatus}\n@${user.username}\n${user.firstName}\n${user.lastName}\nСумма по клиенту: ${sumUserPayments}`;
+    const text = `🚪 <b>Пользователь удален с канала</b>\n\n${textStatus}\n\n${this.listUserData(user)}\n\n${this.listTotalForDelete(user)}`;
+    await this.sendNot('🚪');
     await this.sendNot(text);
   }
 }

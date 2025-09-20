@@ -190,7 +190,7 @@ export class UserService {
 
   async controlUserForDelete(user: UserDocument) {
     const res = await this.botService.removeAndUnbanUser(user.telegramId);
-    let text: string = '';
+    let text: string = 'Пользователь удален';
     if (!res) {
       user.isSubscribed = true;
       text = 'Пользователь не удален из канала, по ошибке\n';

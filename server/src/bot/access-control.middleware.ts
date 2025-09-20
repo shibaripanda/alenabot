@@ -14,6 +14,21 @@ export interface ContextWithUser extends Context {
 
 export const accessControlMiddleware = (): MiddlewareFn<ContextWithUser> => {
   return async (ctx, next) => {
+    const chat = ctx.chat;
+    if (!chat) return;
+
+    // ✅ 1. Приватный чат — разрешаем
+    if (chat.type === 'private') {
+      return next();
+    }
+
+    if (
+      (chat.type === 'group' || chat.type === 'supergroup') &&
+      chat.id === Number(config.get<string>('MANAGER_GROUP')!)
+    ) {
+      return next();
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const moduleRef: ModuleRef | undefined = ctx.state?.moduleRef;
     if (!moduleRef) return next();
