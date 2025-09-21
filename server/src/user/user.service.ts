@@ -51,11 +51,143 @@ export class UserService {
   }
 
   async onModuleInit() {
-    const test = this.config.get<string>('MODE')!;
-    if (test === 'test') {
-      await this.userModel.deleteMany({});
-    }
-    console.log('exist users', await this.userModel.find({}));
+    // const money = await this.getMoneyBook(1);
+    // console.log(money);
+  }
+
+  async moneyBook(days: number) {
+    const money = await this.getMoneyBook(days);
+    await this.botManagerNotificationService.moneyNotification(money);
+  }
+
+  async getMoneyBook(days: number) {
+    const now = Date.now();
+    const paymentsResult = await this.getPaymentsStats(days);
+    const newPaymentUsers = await this.countNewUsersWithRecentPayments(days);
+    const exitUsers = await this.countExpiredSubscriptionsWithin(days);
+    const newUsersInBot = await this.countNewUsers(days);
+    const time = (Date.now() - now) / 1000;
+    return {
+      period: days,
+      moneyTotal: paymentsResult.totalAmount,
+      countPayments: paymentsResult.count,
+      newPaymentUsers,
+      exitUsers,
+      newUsersInBot,
+      time,
+    };
+  }
+
+  async countExpiredSubscriptionsWithin(days: number): Promise<number> {
+    const now = new Date();
+
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+
+    return this.userModel.countDocuments({
+      subscriptionExpiresAt: {
+        $gte: cutoff,
+        $lt: now,
+      },
+      status: { $ne: 'free' }, // исключаем free
+    });
+  }
+
+  async countNewUsersWithRecentPayments(days: number): Promise<number> {
+    const cutoffUser = new Date();
+    cutoffUser.setDate(cutoffUser.getDate() - days);
+
+    const cutoffPayment = new Date();
+    cutoffPayment.setDate(cutoffPayment.getDate() - 30);
+
+    const cutoffSinglePayment = new Date();
+    cutoffSinglePayment.setDate(cutoffSinglePayment.getDate() - days);
+
+    const result: { count: number }[] = await this.userModel.aggregate([
+      // 1. Новые пользователи
+      { $match: { createdAt: { $gte: cutoffUser } } },
+
+      // 2. Есть хотя бы один платеж
+      { $match: { 'payments.0': { $exists: true } } },
+
+      // 3. Исключаем "free" с одним платежом в пределах N дней
+      {
+        $match: {
+          $nor: [
+            {
+              status: 'free',
+              $expr: {
+                $and: [
+                  { $eq: [{ $size: '$payments' }, 1] },
+                  {
+                    $gte: [
+                      { $arrayElemAt: ['$payments.createdAt', 0] },
+                      cutoffSinglePayment,
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+
+      // 4. Разворачиваем платежи
+      { $unwind: '$payments' },
+
+      // 5. Только платежи за последние 30 дней
+      { $match: { 'payments.createdAt': { $gte: cutoffPayment } } },
+
+      // 6. Группируем по пользователю
+      { $group: { _id: '$_id' } },
+
+      // 7. Считаем количество
+      { $count: 'count' },
+    ]);
+
+    return result[0]?.count ?? 0;
+  }
+
+  async getPaymentsStats(
+    days: number,
+  ): Promise<{ totalAmount: number; count: number }> {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+
+    const result: { _id: null; totalAmount: number; count: number }[] =
+      await this.userModel.aggregate([
+        // 1. Только те, у кого есть платежи
+        { $match: { 'payments.0': { $exists: true } } },
+
+        // 2. Разворачиваем массив payments
+        { $unwind: '$payments' },
+
+        // 3. Фильтр по дате
+        { $match: { 'payments.createdAt': { $gte: cutoff } } },
+
+        // 4. Группируем всё в один документ
+        {
+          $group: {
+            _id: null,
+            totalAmount: { $sum: '$payments.total_amount' },
+            count: { $sum: 1 },
+          },
+        },
+      ]);
+
+    return {
+      totalAmount: result[0]?.totalAmount ?? 0,
+      count: result[0]?.count ?? 0,
+    };
+  }
+
+  async countNewUsers(days: number): Promise<number> {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+
+    return this.userModel.countDocuments({
+      createdAt: { $gte: cutoff },
+    });
   }
 
   async checkPayment(telegramId: number): Promise<boolean> {

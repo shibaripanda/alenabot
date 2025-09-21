@@ -15,6 +15,8 @@ import { ConfigService } from '@nestjs/config';
 import { Message } from 'telegraf/typings/core/types/typegram';
 import { UserTelegrafContextWithUserMongo } from './interfaces/UserTelegrafContextWithUserMongo';
 import { UserService } from 'src/user/user.service';
+import { UseGuards } from '@nestjs/common';
+import { AdminGuardAccess } from './guards/access-control.guard';
 
 export type UserTelegrafContext = NarrowedContext<
   Context,
@@ -30,16 +32,15 @@ export class TelegramGateway {
     private readonly config: ConfigService,
     private userService: UserService,
   ) {
-    // this.bot.use(async (ctx, next) => {
-    //   console.log('Update received:', JSON.stringify(ctx.update, null, 2));
-    //   await next();
-    // });
+    this.bot.use(async (ctx, next) => {
+      console.log(ctx.chat?.id);
+      // console.log('Update received:', JSON.stringify(ctx.update, null, 2));
+      await next();
+    });
   }
 
   @Start()
   async start(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
-    // console.log(ctx.app);
-    // console.log(ctx.user);
     await ctx.deleteMessage();
     await this.botService.startBotMessage(ctx.from.id, ctx.user, ctx.app);
   }
@@ -168,21 +169,6 @@ export class TelegramGateway {
 
   @On('pre_checkout_query')
   async onPreCheckoutQuery(@Ctx() ctx: Context) {
-    // const update = ctx.update as UpdateTelegraf.PreCheckoutQueryUpdate;
-    // console.log(update.pre_checkout_query);
-    // console.log('pre_checkout_query');
-    // const total_amount = update.pre_checkout_query.total_amount;
-    // const payload = update.pre_checkout_query.invoice_payload.split('|');
-    // await this.userService.successfulPayment(
-    //   Number(payload[0]),
-    //   total_amount,
-    //   payload[1],
-    //   Number(payload[2]),
-    // );
-    // await this.bot.telegram.answerPreCheckoutQuery(
-    //   update.pre_checkout_query.id,
-    //   true,
-    // );
     await ctx.answerPreCheckoutQuery(true).then((res) => {
       console.log(res);
       console.log(
@@ -192,6 +178,14 @@ export class TelegramGateway {
         }),
       );
     });
+  }
+
+  @UseGuards(AdminGuardAccess)
+  @Action('moneyBook')
+  async moneyBook(@Ctx() ctx: UserTelegrafContextWithUserMongo) {
+    await this.userService.moneyBook(30);
+    console.log('moneyBook');
+    await ctx.answerCbQuery();
   }
 
   @On('callback_query')
@@ -224,6 +218,7 @@ export class TelegramGateway {
     await ctx.answerCbQuery();
   }
 
+  @UseGuards(AdminGuardAccess)
   @On('text')
   async Context(@Ctx() ctx: Context) {
     const message = ctx.message as Message.TextMessage;
@@ -237,9 +232,19 @@ export class TelegramGateway {
       await this.appService.setHelloText(helloText);
       await ctx.reply('✅ Ready');
     }
+    if (
+      text.startsWith('Money ') &&
+      ctx.from?.id === Number(this.config.get<number>('SUPERADMIN')!)
+    ) {
+      const days = text.split(' ')[1];
+      console.log(days);
+      await this.userService.moneyBook(Number(days));
+      // await ctx.reply('✅ Ready');
+    }
     await ctx.deleteMessage();
   }
 
+  @UseGuards(AdminGuardAccess)
   @On('photo')
   async workWithPhoto(@Ctx() ctx: Context) {
     const message = ctx.message as Message.PhotoMessage;
@@ -261,6 +266,7 @@ export class TelegramGateway {
     await ctx.deleteMessage();
   }
 
+  @UseGuards(AdminGuardAccess)
   @Command('enter')
   commandPanel(@Ctx() ctx: Context) {
     console.log(ctx);

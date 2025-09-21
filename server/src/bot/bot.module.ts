@@ -7,11 +7,12 @@ import { ConfigService } from '@nestjs/config';
 import { UserModule } from 'src/user/user.module';
 import { BotMessageService } from './bot.message';
 import { ModuleRef } from '@nestjs/core';
-import { accessControlMiddleware } from './access-control.middleware';
+import { accessControlMiddleware } from './midlawares/access-control.middleware';
 import { BotManagerNotificationService } from './bot.managerNotification';
 import { BotUserNotificationService } from './bot.userNotification';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ControlSub } from './controlSub.service';
+import { groupPrivateMiddleware } from './midlawares/access-groupPrivate.middleware';
 
 @Module({
   imports: [
@@ -33,6 +34,12 @@ import { ControlSub } from './controlSub.service';
           'new_chat_members',
         ],
         middlewares: [
+          (ctx, next) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            ctx.state.moduleRef = moduleRef;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            return groupPrivateMiddleware()(ctx, next);
+          },
           (ctx, next) => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             ctx.state.moduleRef = moduleRef;

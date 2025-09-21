@@ -11,7 +11,7 @@ import { AppSchema } from './app.schema';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.dev', '.env.prod'],
+      envFilePath: ['.env.dev', '.env'],
     }),
     MongooseModule.forRootAsync({
       inject: [ConfigService],

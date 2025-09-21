@@ -5,6 +5,16 @@ import { Payment } from 'src/user/payment.schema';
 import { UserDocument } from 'src/user/user.schema';
 import { Telegraf } from 'telegraf';
 
+interface Money {
+  period: number;
+  moneyTotal: number;
+  countPayments: number;
+  newPaymentUsers: number;
+  exitUsers: number;
+  newUsersInBot: number;
+  time: number;
+}
+
 @Injectable()
 export class BotManagerNotificationService {
   constructor(
@@ -12,6 +22,13 @@ export class BotManagerNotificationService {
     private readonly config: ConfigService,
   ) {
     console.log('BotManagerNotificationService initialized');
+  }
+
+  async moneyNotification(data: Money) {
+    console.log(data);
+    const textData = `💰 Сумма платежей: ${data.moneyTotal / 100}\n🗓 Количество платежей: ${data.countPayments}\n✴️ Новички в боте: ${data.newUsersInBot}\n💵 Первый платеж: ${data.newPaymentUsers}\n🚪 Ушедшие: ${data.exitUsers}\n\n${data.time} сек.`;
+    const text = `💵 <b>Отчет за ${data.period} дней</b>\n\n${textData}`;
+    await this.sendNot(text);
   }
 
   async sendNot(text: string) {

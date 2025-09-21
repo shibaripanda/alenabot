@@ -358,6 +358,12 @@ export class BotService {
       // [{ text: 'Обучение online', callback_data: 'takeStudy' }],
     ];
 
+    if (user.telegramId === Number(this.config.get<number>('SUPERADMIN'))) {
+      buttons.push([
+        { text: 'Отчет последние 30 дней*', callback_data: 'moneyBook' },
+      ]);
+    }
+
     if (photo) {
       await this.botMessageService.sendMessageToUserPhotoTextButtons(
         telegramId,
@@ -525,6 +531,52 @@ export class BotService {
   ): error is { code: number; description: string } {
     return (
       typeof error === 'object' && 'code' in error && 'description' in error
+    );
+  }
+
+  async superadminPanel(user: UserDocument, app: AppDocument) {
+    const photo = app.startMessagePhoto;
+    let text = `<b>${app.helloText}</b>`;
+    const now = new Date();
+    if (user.subscriptionExpiresAt && user.subscriptionExpiresAt >= now) {
+      text =
+        text +
+        '\nВы подписаны до: ' +
+        user.subscriptionExpiresAt.toLocaleDateString();
+    }
+    const buttons = [
+      [
+        {
+          text: 'Отчет',
+          callback_data: 'data',
+        },
+      ],
+      [
+        {
+          text: 'Jumping Universe (для теста)',
+          callback_data: 'takeChannelLong',
+        },
+      ],
+      [{ text: 'Обучение online', callback_data: 'takeStudy' }],
+    ];
+
+    if (photo) {
+      await this.botMessageService.sendMessageToUserPhotoTextButtons(
+        user.telegramId,
+        photo,
+        text,
+        buttons,
+        user,
+        app,
+      );
+      return;
+    }
+    await this.botMessageService.sendMessageToUserTextButtons(
+      user.telegramId,
+      text,
+      buttons,
+      user,
+      app,
     );
   }
 }

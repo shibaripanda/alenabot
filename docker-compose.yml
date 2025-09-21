@@ -1,0 +1,29 @@
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # args:
+      #   VITE_WEB_URL: http://142.93.168.151:5111
+    image: pandadoker/alenabot:v1
+    container_name: alenabot
+    restart: always
+    env_file:
+      - ./server/.env.dev
+    # ports:
+    #   - "5111:5111"
+    depends_on:
+      - mongo
+
+volumes:
+  mongo_data:

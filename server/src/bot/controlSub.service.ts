@@ -27,7 +27,7 @@ export class ControlSub {
     // const appUsers = await this.userService.getUsers();
     // console.log(appUsers);
     const users = await this.userService.getUsersControl();
-    console.log('users: ', users);
+    console.log('users for deleting: ', users.length);
 
     for (const user of users) {
       const diffMs = user.subscriptionExpiresAt.getTime() - now.getTime();
@@ -76,7 +76,7 @@ export class ControlSub {
         await this.botService.startBotMessage(user.telegramId, user, app);
         await user.save();
       }
-      console.log(user);
+      // console.log(user);
     }
   }
 }
