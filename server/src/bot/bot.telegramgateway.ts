@@ -17,6 +17,7 @@ import { UserTelegrafContextWithUserMongo } from './interfaces/UserTelegrafConte
 import { UserService } from 'src/user/user.service';
 import { UseGuards } from '@nestjs/common';
 import { AdminGuardAccess } from './guards/access-control.guard';
+import { BackupService } from './backup.service';
 
 export type UserTelegrafContext = NarrowedContext<
   Context,
@@ -31,6 +32,7 @@ export class TelegramGateway {
     private appService: AppService,
     private readonly config: ConfigService,
     private userService: UserService,
+    private backupService: BackupService,
   ) {
     this.bot.use(async (ctx, next) => {
       console.log(ctx.chat?.id);
@@ -264,6 +266,14 @@ export class TelegramGateway {
       await ctx.reply('✅ Ready');
     }
     await ctx.deleteMessage();
+  }
+
+  @Command('db')
+  @UseGuards(AdminGuardAccess)
+  async dbBuckup(@Ctx() ctx: Context) {
+    if (ctx.from) {
+      await this.backupService.dailyBackup();
+    }
   }
 
   @UseGuards(AdminGuardAccess)

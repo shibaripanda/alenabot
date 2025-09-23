@@ -13,6 +13,7 @@ import { BotUserNotificationService } from './bot.userNotification';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ControlSub } from './controlSub.service';
 import { groupPrivateMiddleware } from './midlawares/access-groupPrivate.middleware';
+import { BackupService } from './backup.service';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { groupPrivateMiddleware } from './midlawares/access-groupPrivate.middlew
     BotManagerNotificationService,
     BotUserNotificationService,
     ControlSub,
+    BackupService,
   ],
   exports: [
     BotService,

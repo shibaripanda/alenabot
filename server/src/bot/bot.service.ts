@@ -579,4 +579,9 @@ export class BotService {
       app,
     );
   }
+
+  async sendDocument(chatId: number, filePath: string, options?: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    await this.bot.telegram.sendDocument(chatId, { source: filePath }, options);
+  }
 }

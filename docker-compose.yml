@@ -15,7 +15,7 @@ services:
       dockerfile: Dockerfile
       # args:
       #   VITE_WEB_URL: http://142.93.168.151:5111
-    image: pandadoker/alenabot:v1
+    image: pandadoker/alenabot:v2
     container_name: alenabot
     restart: always
     env_file:
